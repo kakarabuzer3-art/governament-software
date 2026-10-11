@@ -1,0 +1,105 @@
+/* ============================================================
+   DESIGN TOKENS
+   Balochistan Transport Security & Compliance Management System
+   (Unapproved development preview)
+
+   Every visual constant lives here. Components never hard-code
+   colors, blur, spacing or durations — they reference these
+   variables so the whole product can be rethemed in one place.
+   ============================================================ */
+
+:root {
+  /* ---------- Geometric background (values from supplied source) ---------- */
+  --bg-pattern-size: 200px;
+  --bg-color-1: #1d1d1d;
+  --bg-color-2: #4e4f51;
+  --bg-color-3: #3c3c3c;
+  --bg-base: #141414;
+
+  /* ---------- Glass surfaces ---------- */
+  --glass-fill: rgba(16, 17, 19, 0.55);
+  --glass-fill-strong: rgba(13, 14, 16, 0.78);
+  --glass-fill-soft: rgba(255, 255, 255, 0.05);
+  --glass-fill-hover: rgba(255, 255, 255, 0.09);
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --glass-border-strong: rgba(255, 255, 255, 0.2);
+  --glass-highlight: rgba(255, 255, 255, 0.08);
+  --glass-blur: 14px;
+  --glass-blur-strong: 22px;
+  --glass-shadow-sm: 0 2px 10px rgba(0, 0, 0, 0.25);
+  --glass-shadow-md: 0 10px 30px rgba(0, 0, 0, 0.35);
+  --glass-shadow-lg: 0 24px 60px rgba(0, 0, 0, 0.45);
+  /* Opaque fallback where backdrop-filter is unsupported */
+  --glass-fallback-fill: rgba(22, 23, 26, 0.94);
+
+  /* ---------- Text ---------- */
+  --text-primary: rgba(244, 245, 247, 0.96);
+  --text-secondary: rgba(216, 218, 221, 0.74);
+  --text-muted: rgba(200, 203, 207, 0.52);
+
+  /* ---------- Typography ---------- */
+  --font-sans: var(--font-geist-sans, "Segoe UI"), Tahoma, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono, "Cascadia Mono"), Consolas, monospace;
+  --text-2xs: 0.6875rem; /* 11px */
+  --text-xs: 0.75rem; /* 12px */
+  --text-sm: 0.8125rem; /* 13px */
+  --text-base: 0.9375rem; /* 15px */
+  --text-lg: 1.0625rem; /* 17px */
+  --text-xl: 1.25rem; /* 20px */
+  --text-2xl: 1.5rem; /* 24px */
+  --text-3xl: 1.875rem; /* 30px */
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+  --tracking-wide: 0.06em;
+
+  /* ---------- Spacing scale (4px base) ---------- */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  /* ---------- Border radii ---------- */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-full: 999px;
+
+  /* ---------- Motion ---------- */
+  --duration-fast: 120ms;
+  --duration-normal: 200ms;
+  --duration-slow: 320ms;
+  --ease-standard: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-emphasis: cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* ---------- Focus ---------- */
+  --focus-ring-color: rgba(138, 180, 255, 0.85);
+  --focus-ring: 0 0 0 2px rgba(13, 14, 16, 0.9), 0 0 0 4px var(--focus-ring-color);
+
+  /* ---------- Semantic status colors (contrast-checked on dark glass) ---------- */
+  --status-success: #5fd9a6;
+  --status-success-bg: rgba(95, 217, 166, 0.14);
+  --status-warning: #f5c26b;
+  --status-warning-bg: rgba(245, 194, 107, 0.14);
+  --status-danger: #ff9494;
+  --status-danger-bg: rgba(255, 148, 148, 0.14);
+  --status-info: #8ab4ff;
+  --status-info-bg: rgba(138, 180, 255, 0.14);
+  --status-neutral: #b9bcc2;
+  --status-neutral-bg: rgba(185, 188, 194, 0.12);
+
+  /* ---------- Layout ---------- */
+  --sidebar-width: 264px;
+  --sidebar-width-collapsed: 76px;
+  --topbar-height: 64px;
+  --content-max-width: 1440px;
+  --breakpoint-desktop: 1024px;
+}
