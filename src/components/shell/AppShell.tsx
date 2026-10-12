@@ -27,6 +27,12 @@ export function AppShell({ children }: AppShellProps) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [railCollapsed, setRailCollapsed] = useState(false);
 
+  // The public information site (/info) is deliberately NOT wrapped in the
+  // administrative chrome: it must be usable by anonymous visitors, must not
+  // expose the internal navigation, and must be indexable. The geometric
+  // background still applies, because it is rendered by the root layout.
+  const isPublicSite = pathname?.startsWith("/info") ?? false;
+
   const current = findNavItem(pathname);
 
   // Close the drawer on navigation — adjusted during render (React's
@@ -60,6 +66,10 @@ export function AppShell({ children }: AppShellProps) {
   ]
     .filter(Boolean)
     .join(" ");
+
+  if (isPublicSite) {
+    return <>{children}</>;
+  }
 
   return (
     <div className={shellClasses}>

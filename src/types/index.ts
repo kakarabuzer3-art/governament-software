@@ -13,6 +13,8 @@ export type ModuleId =
   | "dashboard"
   | "operators"
   | "vehicles"
+  | "routes"
+  | "permits"
   | "trips"
   | "inspections"
   | "incidents"

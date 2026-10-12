@@ -12,16 +12,31 @@
  * server inside every protected page, server action and route handler via
  * requirePermission/assertPermission. Hiding routes here is never treated as
  * sufficient access control.
+ *
+ * PHASE 2 DEFECT C — why this file no longer bounces `/login` to `/`:
+ * The proxy can only see whether a session COOKIE is present; it cannot verify
+ * it (no database access on this layer). The old "has cookie + on /login ->
+ * redirect to /" rule therefore treated an expired or revoked cookie as a valid
+ * session, while the dashboard guard treated the very same cookie as
+ * unauthenticated and redirected back to /login. The two rules formed an
+ * infinite redirect loop for anyone holding a stale cookie.
+ *
+ * The redirect for already-authenticated users now lives in the `/login` PAGE,
+ * where the session is verified server-side against the database. The proxy
+ * never trusts the mere presence of a cookie to mean "authenticated".
  */
 import { NextResponse, type NextRequest } from "next/server";
 import { getSessionCookie } from "better-auth/cookies";
 
 /** Routes that require an authenticated session. Covers every module in the
- *  application shell at this stage: dashboard, operators, trips, inspections,
- *  incidents, reports, audit, and settings. */
+ *  application shell at this stage: dashboard, operators, vehicles, routes,
+ *  permits, trips, inspections, incidents, reports, audit, and settings. */
 const PROTECTED_PREFIXES = [
   "/",
   "/operators",
+  "/vehicles",
+  "/routes",
+  "/permits",
   "/trips",
   "/inspections",
   "/incidents",
@@ -42,6 +57,15 @@ function isProtectedPath(pathname: string): boolean {
   );
 }
 
+/** Static assets never need a session check. */
+function isStaticAssetPath(pathname: string): boolean {
+  return (
+    pathname.startsWith("/_next") ||
+    pathname.startsWith("/favicon") ||
+    pathname.startsWith("/assets")
+  );
+}
+
 export function proxy(request: NextRequest): NextResponse {
   const { pathname } = request.nextUrl;
 
@@ -50,22 +74,22 @@ export function proxy(request: NextRequest): NextResponse {
     return NextResponse.next();
   }
 
-  const sessionCookie = getSessionCookie(request);
-  const hasSession = Boolean(sessionCookie);
-
-  // Authenticated users have no reason to sit on the login page.
-  if (hasSession && pathname === "/login") {
-    return NextResponse.redirect(new URL("/", request.url));
-  }
-
   const isPublic =
     PUBLIC_PATHS.includes(pathname as (typeof PUBLIC_PATHS)[number]) ||
-    pathname.startsWith("/_next") ||
-    pathname.startsWith("/favicon");
+    isStaticAssetPath(pathname);
 
-  if (!isPublic && isProtectedPath(pathname) && !hasSession) {
+  if (isPublic) {
+    // `/login` is never redirected from here: the page itself verifies the
+    // session server-side and forwards authenticated users to the dashboard.
+    return NextResponse.next();
+  }
+
+  // Presence of a cookie is only a hint that a session MIGHT exist. If it is
+  // absent, the visitor is definitely unauthenticated, so send them to login
+  // with the intended destination preserved (path only, never a full URL, so
+  // the value cannot be turned into an external redirect).
+  if (isProtectedPath(pathname) && !getSessionCookie(request)) {
     const loginUrl = new URL("/login", request.url);
-    // Preserve intended destination for a friendly post-login redirect.
     loginUrl.searchParams.set("next", pathname);
     return NextResponse.redirect(loginUrl);
   }

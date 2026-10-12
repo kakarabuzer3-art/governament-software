@@ -1,34 +1,38 @@
 /**
- * Protected route handler: returns the current authenticated user's basic
- * identity and permissions, or 401 when there is no valid session.
+ * GET /api/me — the authenticated user's minimal identity.
  *
- * Exists primarily to demonstrate and test that server-side authorization
- * actually blocks unauthenticated and unauthorized requests — not merely the
- * UI. Permissions are resolved from the database via the verified session.
+ * Phase 2 defect A: this handler used to return the identity at the TOP LEVEL
+ * (`{ id, name, email, roles, permissions }`) while `UserTopBar` expected
+ * `{ user: ... }`, so the shell never showed the signed-in user. It now returns
+ * the documented shared contract from `src/lib/me.ts`.
+ *
+ * It also no longer returns the caller's full permission list: the shell only
+ * needs a display identity, and authorisation decisions are always re-made
+ * server-side per request. Least information exposure.
+ *
+ * Unauthenticated callers receive 401 with no identity payload at all.
  */
 import { NextResponse } from "next/server";
 import {
   getCurrentUser,
   UnauthorizedError,
 } from "@/lib/authorization";
+import { toMeResponse, type MeErrorResponse, type MeResponse } from "@/lib/me";
 
-export async function GET(): Promise<NextResponse> {
+export async function GET(): Promise<
+  NextResponse<MeResponse | MeErrorResponse>
+> {
   try {
     const user = await getCurrentUser();
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    return NextResponse.json({
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      roles: user.roles,
-      permissions: Array.from(user.permissions),
-    });
+    return NextResponse.json(toMeResponse(user), { status: 200 });
   } catch (error) {
     if (error instanceof UnauthorizedError) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+    // Never leak internal error details to the client.
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 },

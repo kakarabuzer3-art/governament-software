@@ -14,6 +14,10 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import type { PermissionKey } from "@/lib/rbac";
+import { ForbiddenError, UnauthorizedError } from "@/lib/authz-errors";
+
+// Re-exported so existing imports from "@/lib/authorization" keep working.
+export { ForbiddenError, UnauthorizedError };
 
 export interface CurrentUser {
   id: string;
@@ -21,28 +25,12 @@ export interface CurrentUser {
   name: string;
   roles: string[];
   permissions: Set<PermissionKey>;
-}
-
-/**
- * Thrown when an authenticated user lacks a required permission. Callers
- * (route handlers / server actions) can catch it and return 403; page helpers
- * translate it into a redirect or a forbidden view.
- */
-export class ForbiddenError extends Error {
-  readonly status = 403;
-  constructor(message = "You do not have permission to perform this action.") {
-    super(message);
-    this.name = "ForbiddenError";
-  }
-}
-
-/** Thrown when there is no valid authenticated session. */
-export class UnauthorizedError extends Error {
-  readonly status = 401;
-  constructor(message = "Authentication required.") {
-    super(message);
-    this.name = "UnauthorizedError";
-  }
+  /**
+   * Operator ids this user is explicitly assigned to (`user_operator`).
+   * Operator-staff scoping is derived from this, never from client input.
+   * Empty for department-wide roles and for unassigned accounts.
+   */
+  operatorIds: string[];
 }
 
 interface SessionShape {
@@ -81,6 +69,9 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
           },
         },
       },
+      operatorAssignments: {
+        select: { operatorId: true },
+      },
     },
   });
 
@@ -95,7 +86,18 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
     }
   }
 
-  return { id: user.id, email: user.email, name: user.name, roles, permissions };
+  const operatorIds = (user.operatorAssignments ?? []).map(
+    (assignment) => assignment.operatorId,
+  );
+
+  return {
+    id: user.id,
+    email: user.email,
+    name: user.name,
+    roles,
+    permissions,
+    operatorIds,
+  };
 }
 
 /**

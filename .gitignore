@@ -46,3 +46,8 @@ next-env.d.ts
 *.out
 *.err
 .eslintcache
+
+# local database dumps (may contain personal data — never commit)
+/backups/
+*.sql.dump
+dump.sql
