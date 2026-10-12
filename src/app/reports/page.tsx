@@ -1,9 +1,14 @@
 import type { Metadata } from "next";
 import { ModulePlaceholder } from "@/components/shell/ModulePlaceholder";
+import { requirePermission } from "@/lib/authorization";
+import { PERMISSIONS } from "@/lib/rbac";
 
 export const metadata: Metadata = { title: "Reports" };
+// Auth-gated page: reads the session via headers(); render per-request.
+export const dynamic = "force-dynamic";
 
-export default function ReportsPage() {
+export default async function ReportsPage() {
+  await requirePermission(PERMISSIONS.REPORT_VIEW);
   return (
     <ModulePlaceholder
       icon="chart"

@@ -1,9 +1,14 @@
 import type { Metadata } from "next";
 import { ModulePlaceholder } from "@/components/shell/ModulePlaceholder";
+import { requirePermission } from "@/lib/authorization";
+import { PERMISSIONS } from "@/lib/rbac";
 
 export const metadata: Metadata = { title: "Audit Trail" };
+// Auth-gated page: reads the session via headers(); render per-request.
+export const dynamic = "force-dynamic";
 
-export default function AuditPage() {
+export default async function AuditPage() {
+  await requirePermission(PERMISSIONS.AUDIT_VIEW);
   return (
     <ModulePlaceholder
       icon="history"

@@ -1,0 +1,181 @@
+// ============================================================================
+//  Prisma schema — Balochistan Transport Security & Compliance (Phase 2)
+//
+//  Local database: MariaDB (XAMPP) via Prisma "mysql" provider. MariaDB 10.4
+//  is fully compatible with Prisma's mysql provider.
+//
+//  Scope: authentication, access control (RBAC) and the audit foundation.
+//  Transport-domain tables (operators, vehicles, permits, trips, passenger
+//  manifests, incidents, CCTV inspections) are intentionally NOT here — they
+//  belong to later phases.
+//
+//  Better Auth core models follow the adapter's expected field names; only the
+//  Prisma model names are ours to choose (mapped via @@map).
+// ============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Authentication (Better Auth core models)
+// ---------------------------------------------------------------------------
+
+model User {
+  id            String    @id
+  name          String
+  email         String    @unique
+  emailVerified Boolean   @default(false)
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  sessions     Session[]
+  accounts     Account[]
+  roleAssignments UserRole[]
+  auditEvents  AuditEvent[]
+
+  @@map("user")
+}
+
+model Session {
+  id        String   @id
+  expiresAt DateTime
+  token     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("session")
+}
+
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?   @db.Text
+  refreshToken          String?   @db.Text
+  idToken               String?   @db.Text
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([userId])
+  @@map("account")
+}
+
+model Verification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([identifier])
+  @@map("verification")
+}
+
+// ---------------------------------------------------------------------------
+// Access control (provisional RBAC — subject to departmental approval)
+// ---------------------------------------------------------------------------
+
+/// A named role, e.g. SYSTEM_ADMIN. Roles are assigned to users and granted
+/// permissions. These are proposed technical roles, not confirmed policy.
+model Role {
+  id          String   @id @default(cuid())
+  key         String   @unique // stable machine key, e.g. "SYSTEM_ADMIN"
+  name        String // human label, e.g. "System Administrator"
+  description String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  userAssignments UserRole[]
+  permissions     RolePermission[]
+
+  @@map("role")
+}
+
+/// A discrete capability, e.g. "user.manage". Permissions are checked on the
+/// server for every protected page, action, route handler and DB operation.
+model Permission {
+  id          String   @id @default(cuid())
+  key         String   @unique // e.g. "user.manage"
+  description String
+  createdAt   DateTime @default(now())
+
+  roles RolePermission[]
+
+  @@map("permission")
+}
+
+/// Many-to-many: which users hold which roles.
+model UserRole {
+  id         String   @id @default(cuid())
+  userId     String
+  roleId     String
+  assignedAt DateTime @default(now())
+  assignedBy String? // userId of the granter (nullable for bootstrap)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roleId])
+  @@index([roleId])
+  @@map("user_role")
+}
+
+/// Many-to-many: which permissions each role grants.
+model RolePermission {
+  roleId       String
+  permissionId String
+  grantedAt    DateTime @default(now())
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+  @@index([permissionId])
+  @@map("role_permission")
+}
+
+// ---------------------------------------------------------------------------
+// Audit foundation (minimal for Phase 2)
+// ---------------------------------------------------------------------------
+
+/// Append-only record of security-relevant events. Phase 2 logs auth events
+/// (login success/failure, logout, bootstrap). This table is NOT represented
+/// as tamper-proof; integrity hardening (append-only DB roles, checksums,
+/// off-host shipping) is a documented later enhancement.
+model AuditEvent {
+  id        String   @id @default(cuid())
+  action    String // e.g. "auth.login.success"
+  actorId   String? // null for failed/unknown-actor events
+  actorRole String? // role key at time of event (denormalised snapshot)
+  targetId  String? // subject of the action (e.g. a user id)
+  outcome   String // "success" | "failure"
+  ipHash    String? // privacy-preserving hash of client IP, not raw IP
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  actor User? @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([action])
+  @@index([actorId])
+  @@index([createdAt])
+  @@map("audit_event")
+}

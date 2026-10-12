@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import { Icon } from "@/components/ui/icons";
 import { NAV_GROUPS, findNavItem } from "./nav";
+import { UserTopBar } from "./UserTopBar";
 
 export interface AppShellProps {
   children: ReactNode;
@@ -146,16 +147,7 @@ export function AppShell({ children }: AppShellProps) {
 
           <span className="topbar-spacer" />
 
-          <div className="topbar-user">
-            <span className="chip chip--demo">Sample data</span>
-            <span className="user-avatar" aria-hidden="true">
-              DU
-            </span>
-            <span className="user-meta">
-              <span className="user-name">Demo User</span>
-              <span className="user-role">Synthetic account (no auth yet)</span>
-            </span>
-          </div>
+          <UserTopBar />
         </header>
 
         <main id="main-content" className="app-content">

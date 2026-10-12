@@ -1,9 +1,14 @@
 import type { Metadata } from "next";
 import { ModulePlaceholder } from "@/components/shell/ModulePlaceholder";
+import { requirePermission } from "@/lib/authorization";
+import { PERMISSIONS } from "@/lib/rbac";
 
 export const metadata: Metadata = { title: "Incidents" };
+// Auth-gated page: reads the session via headers(); render per-request.
+export const dynamic = "force-dynamic";
 
-export default function IncidentsPage() {
+export default async function IncidentsPage() {
+  await requirePermission(PERMISSIONS.INCIDENT_VIEW);
   return (
     <ModulePlaceholder
       icon="alertTriangle"

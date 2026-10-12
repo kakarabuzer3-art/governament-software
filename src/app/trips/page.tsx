@@ -1,9 +1,14 @@
 import type { Metadata } from "next";
 import { ModulePlaceholder } from "@/components/shell/ModulePlaceholder";
+import { requirePermission } from "@/lib/authorization";
+import { PERMISSIONS } from "@/lib/rbac";
 
 export const metadata: Metadata = { title: "Trips & Manifests" };
+// Auth-gated page: reads the session via headers(); render per-request.
+export const dynamic = "force-dynamic";
 
-export default function TripsPage() {
+export default async function TripsPage() {
+  await requirePermission(PERMISSIONS.TRIP_VIEW);
   return (
     <ModulePlaceholder
       icon="route"

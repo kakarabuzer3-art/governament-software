@@ -11,6 +11,12 @@ import {
   demoStats,
 } from "@/lib/demo-data";
 import type { JourneyRow, Tone } from "@/types";
+import { requirePermission } from "@/lib/authorization";
+import { PERMISSION_DASHBOARD_VIEW } from "@/lib/rbac";
+
+// Authenticated page: reads the session via headers(), so it must be rendered
+// per-request. Cache Components cannot prerender it.
+export const dynamic = "force-dynamic";
 
 const MANIFEST_TONE: Record<JourneyRow["manifest"], Tone> = {
   complete: "success",
@@ -63,7 +69,12 @@ const journeyColumns: ReadonlyArray<Column<JourneyRow>> = [
  * fabricated for interface development and clearly labelled as such.
  * Phase 6 replaces this with permission-aware database queries.
  */
-export default function DashboardPage() {
+export default async function DashboardPage() {
+  // Server-side authorization: only users whose role grants dashboard.view
+  // reach this page. Unauthenticated -> login; authenticated but unauthorized
+  // -> /forbidden. Enforced here, not by hiding the sidebar.
+  await requirePermission(PERMISSION_DASHBOARD_VIEW);
+
   return (
     <>
       <header className="page-header">

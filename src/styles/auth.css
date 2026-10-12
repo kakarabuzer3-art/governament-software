@@ -1,0 +1,209 @@
+/* ============================================================
+   AUTH SCREENS (Phase 2)
+   Standalone login card and access-denied states, built on the
+   existing design tokens and glassmorphism system. The geometric
+   background stays visible behind the translucent card.
+   ============================================================ */
+
+.login-screen {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: var(--space-6);
+}
+
+.login-card {
+  width: min(420px, 100%);
+  border-radius: var(--radius-xl);
+  padding: var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.login-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.login-title {
+  margin: 0;
+  font-size: var(--text-lg);
+  font-weight: var(--weight-semibold);
+  color: var(--text-primary);
+  line-height: 1.25;
+}
+
+.login-subtitle {
+  margin: 2px 0 0;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.password-field {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.password-field .input {
+  flex: 1;
+  padding-right: 46px;
+}
+
+.password-field .btn--icon {
+  position: absolute;
+  right: 5px;
+  background: transparent;
+  border-color: transparent;
+  color: var(--text-muted);
+}
+
+.password-field .btn--icon:hover {
+  color: var(--text-primary);
+  background: var(--glass-fill-soft);
+}
+
+.login-error {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(255, 148, 148, 0.4);
+  background: var(--status-danger-bg);
+  color: var(--status-danger);
+  font-size: var(--text-xs);
+}
+
+.login-submit {
+  width: 100%;
+  margin-top: var(--space-1);
+  padding: 11px 16px;
+}
+
+.login-help {
+  margin: 0;
+  font-size: var(--text-2xs);
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.login-footer {
+  margin: 0;
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--glass-border);
+  font-size: var(--text-2xs);
+  color: var(--text-muted);
+  text-align: center;
+  line-height: 1.5;
+}
+
+
+/* ---------- Topbar account menu (Phase 2) ---------- */
+
+.topbar-user {
+  position: relative;
+}
+
+.user-chip {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 6px 10px;
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background var(--duration-fast) var(--ease-standard),
+    border-color var(--duration-fast) var(--ease-standard);
+}
+
+.user-chip:hover {
+  background: var(--glass-fill-soft);
+  border-color: var(--glass-border);
+}
+
+.user-chip:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.user-caret {
+  opacity: 0.5;
+  transform: rotate(-90deg);
+}
+
+.user-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1.2;
+}
+
+.user-name {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  color: var(--text-primary);
+}
+
+.user-role {
+  font-size: var(--text-2xs);
+  color: var(--text-muted);
+}
+
+.user-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 40;
+  width: 260px;
+  padding: var(--space-4);
+  border-radius: var(--radius-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.user-menu-identity {
+  display: flex;
+  flex-direction: column;
+}
+
+.user-menu-name {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  color: var(--text-primary);
+}
+
+.user-menu-email {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.user-menu-roles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.user-menu-empty {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.user-menu-signout {
+  justify-content: flex-start;
+  width: 100%;
+  color: var(--status-danger);
+}
