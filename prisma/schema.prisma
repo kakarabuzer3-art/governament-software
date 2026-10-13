@@ -35,6 +35,14 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
+  /// Account-disabled marker. Set by an administrator via /settings.
+  /// A non-null value blocks sign-in AND makes getCurrentUser() return null, so
+  /// every server-side authorization check denies the account immediately.
+  /// Disabling also deletes the account's session rows.
+  disabledAt     DateTime?
+  /// Short, non-sensitive reason recorded for the audit trail.
+  disabledReason String?
+
   sessions     Session[]
   accounts     Account[]
   roleAssignments UserRole[]
@@ -474,4 +482,37 @@ model Incident {
   @@index([status])
   @@index([severity])
   @@map("incident")
+}
+
+// ---------------------------------------------------------------------------
+// Login abuse ledger (Phase C hardening).
+//
+// Records one row per sign-in attempt so a sliding-window limit can be applied
+// WITHOUT locking accounts. Two independent keys are stored so that a targeted
+// lockout attack from one address cannot deny service to the legitimate user
+// coming from another address.
+//
+// PRIVACY: neither the submitted email nor the client IP is stored. Both are
+// transformed with a KEYED digest (HMAC) before they reach this table, because
+// the raw value spaces are small enough to brute-force an unkeyed hash.
+//
+// HOUSEKEEPING: rows are purged by age (`AuthRateLimit.pruneBefore`) on a
+// best-effort basis. Nothing here is a record of truth and no user data is
+// destroyed by pruning.
+// ---------------------------------------------------------------------------
+
+model LoginAttempt {
+  id             String   @id @default(cuid())
+  /// HMAC of the normalised identifier (the submitted email). Never the email.
+  identifierHash String
+  /// HMAC of the client IP, or null when the client address is not trusted.
+  ipHash         String?
+  /// "failure" | "success" | "blocked"
+  outcome        String
+  createdAt      DateTime @default(now())
+
+  @@index([identifierHash, createdAt])
+  @@index([ipHash, createdAt])
+  @@index([createdAt])
+  @@map("login_attempt")
 }

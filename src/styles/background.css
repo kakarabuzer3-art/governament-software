@@ -1,41 +1,279 @@
 /* ============================================================
-   PERSISTENT GEOMETRIC BACKGROUND
-   Faithful CSS reproduction of the pattern supplied by the user
-   (originally a styled-components <Pattern /> component).
-
-   The original values are preserved literally:
-     --s: 200px, --c1: #1d1d1d, --c2: #4e4f51, --c3: #3c3c3c,
-     background-position: calc(0.5 * var(--s)) calc(0.5 * var(--s) * 0.577)
-     background-size: var(--s) calc(var(--s) * 0.577)
-
-   It is rendered as a fixed, full-viewport layer behind the whole
-   application shell so it stays visible through every glass panel.
+   ADVANCED DYNAMIC BACKGROUNDS & HIGH CLARITY GLASS
+   Supports 4 smart selectable patterns:
+   1. Void Pulse: Organic noise + Specular Magenta lighting filter
+   2. 3D Checker Horizon: 3D perspective depth
+   3. Deep Space Stars: 3-tier parallax animated starfield
+   4. Pure Monochrome: Deep contrast dark minimal
    ============================================================ */
 
-.app-background {
+.dynamic-app-background {
   position: fixed;
   inset: 0;
   z-index: 0;
-  pointer-events: none; /* never blocks clicks on UI above it */
+  pointer-events: none;
+  overflow: hidden;
+  background-color: #060709;
+}
 
-  --s: 200px;
-  --c1: #1d1d1d;
-  --c2: #4e4f51;
-  --c3: #3c3c3c;
+.bg-layer {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.5s ease-in-out, visibility 0.5s ease-in-out;
+  pointer-events: none;
+}
 
-  background:
-    repeating-conic-gradient(
-        from 30deg,
-        #0000 0 120deg,
-        var(--c3) 0 180deg
-      )
-      calc(0.5 * var(--s)) calc(0.5 * var(--s) * 0.577),
-    repeating-conic-gradient(
-      from 30deg,
-      var(--c1) 0 60deg,
-      var(--c2) 0 120deg,
-      var(--c3) 0 180deg
+/* Activate current layer */
+.theme--void-pulse .bg-layer--void-pulse,
+.theme--chess-perspective .bg-layer--chess-perspective,
+.theme--deep-space .bg-layer--deep-space,
+.theme--monochrome-pure .bg-layer--monochrome-pure {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* -------------------------------------------------------------
+   PATTERN 1: Void Pulse (Organic Filter & Magenta Specular Glow)
+   ------------------------------------------------------------- */
+.void-pulse-surface {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    to bottom,
+    rgba(35, 2, 20, 0.45) 0%,
+    rgb(10, 10, 32) 40%,
+    rgba(4, 5, 12, 1) 100%
+  );
+  filter: url(#void-texture);
+  position: relative;
+  opacity: 0.92;
+}
+
+.void-texture-svg {
+  position: absolute;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+/* -------------------------------------------------------------
+   PATTERN 2: 3D Checker Horizon Perspective
+   ------------------------------------------------------------- */
+.chess-container {
+  width: 100%;
+  height: 100%;
+  --bg: linear-gradient(
+      45deg,
+      rgb(8, 8, 12) 25%,
+      transparent 25%,
+      transparent 75%,
+      rgb(8, 8, 12) 75%,
+      rgb(8, 8, 12)
+    ),
+    linear-gradient(
+      45deg,
+      rgb(8, 8, 12) 25%,
+      rgba(240, 240, 255, 0.85) 25%,
+      rgba(240, 240, 255, 0.85) 75%,
+      rgb(8, 8, 12) 75%,
+      rgb(8, 8, 12)
     );
+  --bgsize: 60px 60px;
+  --bgposition: 0 0, 30px 30px;
+  background-color: #0b0c10;
+  background-image: var(--bg);
+  background-size: var(--bgsize);
+  background-position: var(--bgposition);
+  position: relative;
+  perspective: 1000px;
+  transform-style: preserve-3d;
+  overflow: hidden;
+  box-shadow: inset 0px 0px 500px rgb(6, 7, 10);
+}
 
-  background-size: var(--s) calc(var(--s) * 0.577);
+.chess-ground {
+  content: "";
+  width: 100%;
+  height: 160%;
+  box-shadow: 0px -100px 500px black, inset 0px 100px 500px rgb(10, 10, 15);
+  position: absolute;
+  top: 48%;
+  background-image: var(--bg);
+  background-size: var(--bgsize);
+  background-position: var(--bgposition);
+  transform-origin: top center;
+  transform: rotateX(80deg);
+}
+
+/* -------------------------------------------------------------
+   PATTERN 3: Deep Space Parallax Animated Stars
+   ------------------------------------------------------------- */
+.space-container {
+  height: 100%;
+  width: 100%;
+  background: radial-gradient(ellipse at bottom, #131c26 0%, #06070a 100%);
+  overflow: hidden;
+  position: relative;
+}
+
+#stars {
+  width: 1px;
+  height: 1px;
+  background: transparent;
+  box-shadow:
+    501px 811px #fff, 1450px 1324px #fff, 1093px 1780px #fff, 1469px 678px #fff,
+    904px 741px #fff, 1160px 781px #fff, 1841px 1962px #fff, 1630px 1667px #fff,
+    1788px 676px #fff, 367px 1734px #fff, 1343px 156px #fff, 1283px 1142px #fff,
+    1062px 378px #fff, 1395px 467px #fff, 1017px 1891px #fff, 137px 1114px #fff,
+    1767px 1403px #fff, 1543px 11px #fff, 1078px 181px #fff, 1189px 1574px #fff,
+    1697px 1551px #fff, 439px 472px #fff, 1491px 677px #fff, 1364px 599px #fff,
+    34px 382px #fff, 1221px 1584px #fff, 1266px 1499px #fff, 169px 1907px #fff,
+    1219px 1125px #fff, 659px 18px #fff, 1731px 1959px #fff, 332px 1216px #fff,
+    1913px 788px #fff, 80px 712px #fff, 326px 1605px #fff, 574px 1502px #fff,
+    473px 1653px #fff, 404px 975px #fff, 322px 1797px #fff, 425px 1321px #fff,
+    1121px 1797px #fff, 731px 647px #fff, 891px 1584px #fff, 1523px 109px #fff,
+    1379px 244px #fff, 865px 1064px #fff, 493px 956px #fff, 624px 1380px #fff,
+    440px 619px #fff, 1630px 767px #fff, 955px 1196px #fff, 62px 729px #fff,
+    126px 946px #fff, 1256px 896px #fff, 1444px 256px #fff, 661px 1628px #fff,
+    1078px 1716px #fff, 300px 737px #fff, 1734px 413px #fff, 1296px 129px #fff,
+    1771px 1678px #fff, 977px 1764px #fff, 1879px 549px #fff, 665px 1531px #fff,
+    89px 701px #fff, 1084px 1183px #fff, 1597px 1576px #fff, 1354px 1774px #fff,
+    554px 1471px #fff, 1469px 287px #fff, 887px 106px #fff, 1962px 766px #fff,
+    638px 805px #fff, 1651px 741px #fff, 1517px 1826px #fff, 24px 1152px #fff,
+    507px 558px #fff, 1262px 652px #fff, 246px 1048px #fff, 1077px 421px #fff,
+    1866px 1847px #fff, 1986px 1561px #fff, 704px 632px #fff, 1991px 1875px #fff,
+    1227px 395px #fff, 45px 1116px #fff, 247px 786px #fff, 890px 607px #fff,
+    787px 1235px #fff, 557px 524px #fff, 1582px 1285px #fff, 1725px 1366px #fff;
+  animation: animStar 60s linear infinite;
+}
+#stars:after {
+  content: " ";
+  position: absolute;
+  top: 2000px;
+  width: 1px;
+  height: 1px;
+  background: transparent;
+  box-shadow: inherit;
+}
+
+#stars2 {
+  width: 2px;
+  height: 2px;
+  background: transparent;
+  box-shadow:
+    1925px 1320px #fff, 693px 1778px #fff, 1016px 711px #fff, 1171px 563px #fff,
+    661px 1919px #fff, 1610px 44px #fff, 1275px 140px #fff, 1208px 1802px #fff,
+    1473px 1587px #fff, 11px 1117px #fff, 853px 1757px #fff, 1149px 937px #fff,
+    1353px 428px #fff, 270px 279px #fff, 258px 1404px #fff, 417px 1188px #fff,
+    286px 561px #fff, 393px 1765px #fff, 147px 881px #fff, 666px 1097px #fff,
+    1425px 1278px #fff, 806px 156px #fff, 1252px 561px #fff, 218px 52px #fff,
+    1371px 1980px #fff, 171px 745px #fff, 1424px 89px #fff, 137px 244px #fff,
+    939px 1922px #fff, 137px 1080px #fff, 1757px 50px #fff, 904px 536px #fff;
+  animation: animStar 120s linear infinite;
+}
+#stars2:after {
+  content: " ";
+  position: absolute;
+  top: 2000px;
+  width: 2px;
+  height: 2px;
+  background: transparent;
+  box-shadow: inherit;
+}
+
+#stars3 {
+  width: 3px;
+  height: 3px;
+  background: transparent;
+  box-shadow:
+    200px 981px #fff, 1731px 521px #fff, 132px 1039px #fff, 1888px 1547px #fff,
+    899px 1226px #fff, 1887px 580px #fff, 1548px 1092px #fff, 1626px 689px #fff,
+    254px 1072px #fff, 1684px 1211px #fff, 672px 1267px #fff, 939px 668px #fff,
+    1969px 645px #fff, 1126px 983px #fff, 457px 568px #fff, 476px 876px #fff,
+    829px 1896px #fff, 1364px 1846px #fff, 1507px 1120px #fff, 936px 1948px #fff;
+  animation: animStar 180s linear infinite;
+}
+#stars3:after {
+  content: " ";
+  position: absolute;
+  top: 2000px;
+  width: 3px;
+  height: 3px;
+  background: transparent;
+  box-shadow: inherit;
+}
+
+@keyframes animStar {
+  from {
+    transform: translateY(0px);
+  }
+  to {
+    transform: translateY(-2000px);
+  }
+}
+
+/* -------------------------------------------------------------
+   PATTERN 4: Pure White / Black High Contrast Dark Minimal
+   ------------------------------------------------------------- */
+.monochrome-container {
+  width: 100%;
+  height: 100%;
+  background:
+    radial-gradient(circle at 50% 20%, rgba(255, 255, 255, 0.04) 0%, transparent 60%),
+    linear-gradient(180deg, #050507 0%, #000000 100%);
+  position: relative;
+}
+
+/* Subtle clarity enhancer ensuring background is visible without eye strain */
+.bg-clarity-enhancer {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at center, transparent 35%, rgba(0, 0, 0, 0.4) 100%);
+  pointer-events: none;
+}
+
+/* -------------------------------------------------------------
+   BACKGROUND SELECTOR TOPBAR STYLING
+   ------------------------------------------------------------- */
+.bg-theme-switcher {
+  display: flex;
+  align-items: center;
+}
+
+.bg-select-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--radius-md, 8px);
+  padding: 3px 8px;
+  transition: all 0.2s ease;
+}
+
+.bg-select-wrap:hover {
+  background: rgba(255, 255, 255, 0.09);
+  border-color: rgba(255, 255, 255, 0.22);
+}
+
+.bg-select-icon {
+  font-size: 14px;
+}
+
+.bg-select-input {
+  background: transparent !important;
+  border: none !important;
+  color: var(--text-primary) !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  padding: 4px 6px !important;
+  cursor: pointer;
+  outline: none;
+}
+
+.bg-select-input option {
+  background: #121318;
+  color: #fff;
 }

@@ -14,6 +14,8 @@
     "db:deploy": "prisma migrate deploy",
     "db:seed": "tsx prisma/seed.ts",
     "db:verify": "tsx scripts/verify-db.ts",
+    "keys:rotate": "tsx scripts/rotate-field-keys.ts",
+    "audit:deps": "npm audit --omit=dev",
     "verify:auth": "node scripts/e2e-auth.mjs",
     "verify:pages": "node scripts/smoke-pages.mjs",
     "db:studio": "prisma studio",

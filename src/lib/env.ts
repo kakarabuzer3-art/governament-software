@@ -11,7 +11,7 @@
  * DATABASE_URL must be a MySQL/MariaDB connection URL.
  */
 import { z } from "zod";
-import { parseEncryptionKey } from "@/lib/crypto/field-crypto";
+import { parseEncryptionKey, parseKeyring } from "@/lib/crypto/field-crypto";
 
 export const serverEnvSchema = z.object({
   DATABASE_URL: z
@@ -28,9 +28,10 @@ export const serverEnvSchema = z.object({
   BETTER_AUTH_SECRET: z
     .string()
     .min(16, "BETTER_AUTH_SECRET must be at least 16 characters."),
-  // AES-256-GCM key for sensitive passenger identity fields. Optional so the
+  // AES-256-GCM key(s) for sensitive passenger identity fields. Optional so the
   // application still builds and runs for non-manifest work; passenger writes
-  // FAIL CLOSED when it is absent (see src/lib/crypto/field-crypto.ts).
+  // FAIL CLOSED when no usable key is present
+  // (see src/lib/crypto/field-crypto.ts).
   FIELD_ENCRYPTION_KEY: z
     .string()
     .optional()
@@ -41,6 +42,38 @@ export const serverEnvSchema = z.object({
           "FIELD_ENCRYPTION_KEY must be a 32-byte key encoded as base64 or as 64 hex characters.",
       },
     ),
+  // Rotation keyring: "id:key,id:key" — the FIRST entry is the primary key used
+  // for new writes; the rest are retained so older ciphertext stays readable.
+  FIELD_ENCRYPTION_KEYS: z
+    .string()
+    .optional()
+    .refine(
+      (value) => !value || parseKeyring(value, undefined).keyring !== null,
+      {
+        message:
+          "FIELD_ENCRYPTION_KEYS must be a comma-separated list of 32-byte keys, optionally prefixed with an id (id:key).",
+      },
+    ),
+  // Dedicated key for identity fingerprints. Prefer setting this so that
+  // rotating the encryption key does not invalidate duplicate detection.
+  FIELD_FINGERPRINT_KEY: z
+    .string()
+    .optional()
+    .refine((value) => !value || parseEncryptionKey(value) !== null, {
+      message:
+        "FIELD_FINGERPRINT_KEY must be a 32-byte key encoded as base64 or as 64 hex characters.",
+    }),
+  // Number of reverse proxies we operate in front of the app. 0 = trust no
+  // forwarding header (no client address is recorded).
+  TRUSTED_PROXY_HOPS: z
+    .string()
+    .optional()
+    .refine(
+      (value) => !value || /^\d{1,2}$/.test(value.trim()),
+      { message: "TRUSTED_PROXY_HOPS must be a whole number between 0 and 8." },
+    ),
+  // Dedicated key for audit identifier hashing (falls back to BETTER_AUTH_SECRET).
+  AUDIT_HASH_KEY: z.string().optional(),
   // Optional retention configuration for manifest data (floor of 10 days).
   MANIFEST_RETENTION_DAYS: z.string().optional(),
   BETTER_AUTH_URL: z.string().min(1).optional(),

@@ -6,6 +6,9 @@ import { useEffect, useState, type ReactNode } from "react";
 import { Icon } from "@/components/ui/icons";
 import { NAV_GROUPS, findNavItem } from "./nav";
 import { UserTopBar } from "./UserTopBar";
+import { LanguageSelector } from "@/components/i18n/LanguageSelector";
+import { LocaleProvider } from "@/components/i18n/LocaleProvider";
+import { BackgroundSwitcher } from "./BackgroundManager";
 
 export interface AppShellProps {
   children: ReactNode;
@@ -72,104 +75,110 @@ export function AppShell({ children }: AppShellProps) {
   }
 
   return (
-    <div className={shellClasses}>
-      <aside
-        id="app-sidebar"
-        className="app-sidebar glass glass--strong"
-        aria-label="Main navigation"
-      >
-        <div className="sidebar-brand">
-          <span className="brand-mark" aria-hidden="true">
-            <Icon name="shield" size={22} />
-          </span>
-          <span className="brand-text">
-            <span className="brand-title">Transport Security</span>
-            <span className="brand-subtitle">Compliance System &middot; Preview</span>
-          </span>
-        </div>
-
-        <nav className="sidebar-nav" aria-label="Modules">
-          {NAV_GROUPS.map((group) => (
-            <div key={group.label}>
-              <p className="nav-section-label">{group.label}</p>
-              {group.items.map((item) => {
-                const isActive = item.href === current.href;
-                return (
-                  <Link
-                    key={item.id}
-                    href={item.href}
-                    className={`nav-link${isActive ? " is-active" : ""}`}
-                    aria-current={isActive ? "page" : undefined}
-                    title={railCollapsed ? item.label : undefined}
-                  >
-                    <Icon name={item.icon} className="nav-icon" size={19} />
-                    <span className="nav-label">{item.label}</span>
-                    <span className="nav-phase-chip" aria-label={`Phase ${item.phase}`}>
-                      P{item.phase}
-                    </span>
-                  </Link>
-                );
-              })}
-            </div>
-          ))}
-        </nav>
-
-        <div className="sidebar-footer">
-          <span>Unapproved development project</span>
-          <span>Synthetic data only</span>
-        </div>
-      </aside>
-
-      <div
-        className="nav-overlay"
-        onClick={() => setDrawerOpen(false)}
-        aria-hidden="true"
-      />
-
-      <div className="app-frame">
-        <header className="app-topbar glass">
-          <button
-            type="button"
-            className="btn btn--ghost btn--icon topbar-menu-btn"
-            onClick={() => setDrawerOpen((value) => !value)}
-            aria-label={drawerOpen ? "Close navigation menu" : "Open navigation menu"}
-            aria-expanded={drawerOpen}
-            aria-controls="app-sidebar"
-          >
-            <Icon name={drawerOpen ? "close" : "menu"} size={20} />
-          </button>
-          <button
-            type="button"
-            className="btn btn--ghost btn--icon topbar-collapse-btn"
-            onClick={() => setRailCollapsed((value) => !value)}
-            aria-label={railCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-            aria-pressed={railCollapsed}
-          >
-            <Icon name="panelLeft" size={20} />
-          </button>
-
-          <div className="topbar-title-group">
-            <h1 className="topbar-title">{current.label}</h1>
-            <span className="topbar-subtitle">
-              Development preview &middot; unapproved project
+    <LocaleProvider>
+      <div className={shellClasses}>
+        <aside
+          id="app-sidebar"
+          className="app-sidebar glass glass--strong"
+          aria-label="Main navigation"
+        >
+          <div className="sidebar-brand">
+            <span className="brand-mark" aria-hidden="true">
+              <Icon name="shield" size={22} />
+            </span>
+            <span className="brand-text">
+              <span className="brand-title">Transport Security</span>
+              <span className="brand-subtitle">Compliance System &middot; Preview</span>
             </span>
           </div>
 
-          <span className="topbar-spacer" />
+          <nav className="sidebar-nav" aria-label="Modules">
+            {NAV_GROUPS.map((group) => (
+              <div key={group.label}>
+                <p className="nav-section-label">{group.label}</p>
+                {group.items.map((item) => {
+                  const isActive = item.href === current.href;
+                  return (
+                    <Link
+                      key={item.id}
+                      href={item.href}
+                      className={`nav-link${isActive ? " is-active" : ""}`}
+                      aria-current={isActive ? "page" : undefined}
+                      title={railCollapsed ? item.label : undefined}
+                    >
+                      <Icon name={item.icon} className="nav-icon" size={19} />
+                      <span className="nav-label">{item.label}</span>
+                      <span className="nav-phase-chip" aria-label={`Phase ${item.phase}`}>
+                        P{item.phase}
+                      </span>
+                    </Link>
+                  );
+                })}
+              </div>
+            ))}
+          </nav>
 
-          <UserTopBar />
-        </header>
+          <div className="sidebar-footer">
+            <span>Unapproved development project</span>
+            <span>Synthetic data only</span>
+          </div>
+        </aside>
 
-        <main id="main-content" className="app-content">
-          {children}
-        </main>
+        <div
+          className="nav-overlay"
+          onClick={() => setDrawerOpen(false)}
+          aria-hidden="true"
+        />
 
-        <footer className="app-footer">
-          Balochistan Transport Security &amp; Compliance Management System —
-          development preview with synthetic data. Not an approved government
-          service.
-        </footer>
-      </div>
-    </div>
+        <div className="app-frame">
+          <header className="app-topbar glass">
+            <button
+              type="button"
+              className="btn btn--ghost btn--icon topbar-menu-btn"
+              onClick={() => setDrawerOpen((value) => !value)}
+              aria-label={drawerOpen ? "Close navigation menu" : "Open navigation menu"}
+              aria-expanded={drawerOpen}
+              aria-controls="app-sidebar"
+            >
+              <Icon name={drawerOpen ? "close" : "menu"} size={20} />
+            </button>
+            <button
+              type="button"
+              className="btn btn--ghost btn--icon topbar-collapse-btn"
+              onClick={() => setRailCollapsed((value) => !value)}
+              aria-label={railCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+              aria-pressed={railCollapsed}
+            >
+              <Icon name="panelLeft" size={20} />
+            </button>
+
+            <div className="topbar-title-group">
+              <h1 className="topbar-title">{current.label}</h1>
+              <span className="topbar-subtitle">
+                Development preview &middot; unapproved project
+              </span>
+            </div>
+
+            <span className="topbar-spacer" />
+
+            <BackgroundSwitcher />
+
+            <LanguageSelector />
+
+            <UserTopBar />
+          </header>
+
+          <main id="main-content" className="app-content">
+            {children}
+          </main>
+
+          <footer className="app-footer">
+            Balochistan Transport Security & Compliance Management System —
+            development preview with synthetic data. Not an approved government
+            service.
+          </footer>
+        </div>
+        </div>
+    </LocaleProvider>
   );
 }

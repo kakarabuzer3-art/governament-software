@@ -50,6 +50,7 @@ function ctxFor(roles: string[], scopedOperatorIds: string[] = []): TransportCon
       roles,
       permissions: new Set<PermissionKey>(),
       operatorIds: scopedOperatorIds,
+      disabled: false,
     },
     scope: resolveOperatorScope({ roles, operatorIds: scopedOperatorIds }),
   };

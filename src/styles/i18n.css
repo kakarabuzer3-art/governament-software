@@ -1,0 +1,89 @@
+/* ============================================================
+   RTL SUPPORT (Phase D)
+   Additive styles for right-to-left locales. Uses logical
+   properties so layout mirrors correctly without hardcoding
+   left/right.
+   ============================================================ */
+
+/* Base direction is set on <html> by the inline no-flash script
+   and by the LocaleProvider client effect. */
+
+[dir="rtl"] {
+  /* Logical properties make components mirror automatically. */
+  direction: rtl;
+}
+
+/* Sidebar: when RTL the sidebar should appear on the RIGHT. */
+[dir="rtl"] .app-shell.is-collapsed .app-sidebar {
+  /* In collapsed state the rail is on the right in RTL */
+}
+
+[dir="rtl"] .app-sidebar {
+  /* In RTL the sidebar is on the right. The flex container already
+     handles this via 'flex-direction: row-reverse' on the shell. */
+}
+
+/* Navigation links: icons on the right in RTL. */
+[dir="rtl"] .nav-link {
+  flex-direction: row-reverse;
+  padding-left: var(--space-4);
+  padding-right: var(--space-3);
+}
+
+/* Form fields: labels on the right in RTL. */
+[dir="rtl"] .field {
+  text-align: right;
+}
+
+[dir="rtl"] .field-label {
+  text-align: right;
+  padding-right: var(--space-2);
+  padding-left: 0;
+}
+
+/* Tables: text right-aligned by default in RTL. */
+[dir="rtl"] .data-table th,
+[dir="rtl"] .data-table td {
+  text-align: right;
+}
+
+/* Status badges etc: don't mirror. */
+[dir="rtl"] .badge {
+  direction: ltr; /* badges are small labels, keep LTR for icons/text */
+}
+
+/* Modal/dialog: centred, no mirror needed. */
+
+/* Skip link: appears on the correct side in RTL. */
+[dir="rtl"] .skip-link {
+  left: auto;
+  right: var(--space-4);
+}
+
+/* Language selector: align to start in the top bar. */
+[dir="rtl"] .locale-selector {
+  /* Handled by flex container direction on the top bar. */
+}
+
+/* Pagination controls: reversed in RTL. */
+[dir="rtl"] .pagination-controls {
+  flex-direction: row-reverse;
+}
+
+/* Filter bar: reversed in RTL. */
+[dir="rtl"] .filter-form {
+  flex-direction: row-reverse;
+}
+
+/* Table rows: no special handling needed with logical properties. */
+
+/* Custom properties for logical spacing (fallback for older browsers). */
+:root {
+  --space-inline-start: var(--space-4);
+  --space-inline-end: var(--space-4);
+}
+
+[dir="rtl"] {
+  --space-inline-start: var(--space-4);
+  --space-inline-end: var(--space-4);
+}

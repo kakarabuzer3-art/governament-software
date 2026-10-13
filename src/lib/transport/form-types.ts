@@ -11,6 +11,12 @@ export interface FormState {
   fieldErrors: Record<string, string[]>;
   /** Echoed back so a failed submit never wipes the user's input. */
   values?: Record<string, string>;
+  /**
+   * A credential shown to the operator exactly ONCE (e.g. a generated initial
+   * password). Deliberately not part of `values`, so it is never re-rendered
+   * into a form field. Never persisted, logged or audited.
+   */
+  secretOnce?: string;
 }
 
 export const EMPTY_FORM_STATE: FormState = {

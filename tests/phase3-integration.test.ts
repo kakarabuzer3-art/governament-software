@@ -50,6 +50,7 @@ function ctxFor(
       roles,
       permissions: new Set<PermissionKey>(permissions),
       operatorIds,
+      disabled: false,
     },
     scope: resolveOperatorScope({ roles, operatorIds }),
   };

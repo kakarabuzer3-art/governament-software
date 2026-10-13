@@ -10,6 +10,8 @@
 @import "../styles/shell.css";
 @import "../styles/auth.css";
 @import "../styles/transport.css";
+@import "../styles/admin.css";
+@import "../styles/i18n.css";
 
 *,
 *::before,

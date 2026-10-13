@@ -15,10 +15,11 @@
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import {
+  decryptField,
   encryptField,
   fingerprintField,
-  decryptField,
-  requireFieldEncryptionKey,
+  requireFingerprintKey,
+  requireKeyring,
 } from "@/lib/crypto/field-crypto";
 import { maskCnic, maskMobile, maskTail } from "@/lib/mask";
 import { ConflictError, NotFoundError, parseSchema } from "./errors";
@@ -84,10 +85,11 @@ export async function createPassenger(
 ): Promise<{ id: string }> {
   await getTripOrThrow(ctx, tripId);
   const data = parseSchema(passengerSchema, input);
-  // Fails closed when FIELD_ENCRYPTION_KEY is missing or unusable.
-  const key = requireFieldEncryptionKey();
+  // Fails closed when no usable encryption key is configured.
+  const keyring = requireKeyring();
+  const fingerprintKey = requireFingerprintKey();
 
-  const fingerprint = fingerprintField(data.identityNumber, key);
+  const fingerprint = fingerprintField(data.identityNumber, fingerprintKey);
   const duplicate = await prisma.passenger.findUnique({
     where: { tripId_identityFingerprint: { tripId, identityFingerprint: fingerprint } },
     select: { id: true },
@@ -106,12 +108,12 @@ export async function createPassenger(
         passengerName: data.passengerName,
         fatherName: data.fatherName,
         identityType: data.identityType,
-        identityNumberEncrypted: encryptField(data.identityNumber, key),
+        identityNumberEncrypted: encryptField(data.identityNumber, keyring),
         identityFingerprint: fingerprint,
         identityMasked: maskIdentity(data.identityType, data.identityNumber),
-        mobileEncrypted: encryptField(data.mobileNumber, key),
+        mobileEncrypted: encryptField(data.mobileNumber, keyring),
         mobileMasked: maskMobile(data.mobileNumber),
-        permanentAddressEncrypted: encryptField(data.permanentAddress, key),
+        permanentAddressEncrypted: encryptField(data.permanentAddress, keyring),
       },
       select: { id: true },
     });
@@ -145,9 +147,10 @@ export async function updatePassenger(
 ): Promise<{ id: string }> {
   const existing = await loadPassengerForWrite(ctx, passengerId);
   const data = parseSchema(passengerSchema, input);
-  const key = requireFieldEncryptionKey();
+  const keyring = requireKeyring();
+  const fingerprintKey = requireFingerprintKey();
 
-  const fingerprint = fingerprintField(data.identityNumber, key);
+  const fingerprint = fingerprintField(data.identityNumber, fingerprintKey);
   const duplicate = await prisma.passenger.findFirst({
     where: {
       tripId: existing.tripId,
@@ -169,12 +172,12 @@ export async function updatePassenger(
       passengerName: data.passengerName,
       fatherName: data.fatherName,
       identityType: data.identityType,
-      identityNumberEncrypted: encryptField(data.identityNumber, key),
+      identityNumberEncrypted: encryptField(data.identityNumber, keyring),
       identityFingerprint: fingerprint,
       identityMasked: maskIdentity(data.identityType, data.identityNumber),
-      mobileEncrypted: encryptField(data.mobileNumber, key),
+      mobileEncrypted: encryptField(data.mobileNumber, keyring),
       mobileMasked: maskMobile(data.mobileNumber),
-      permanentAddressEncrypted: encryptField(data.permanentAddress, key),
+      permanentAddressEncrypted: encryptField(data.permanentAddress, keyring),
     },
     select: { id: true },
   });
@@ -249,15 +252,15 @@ export async function revealPassenger(
   // Scope check through the owning trip.
   await getTripOrThrow(ctx, passenger.tripId);
 
-  const key = requireFieldEncryptionKey();
+  const keyring = requireKeyring();
   const revealed: RevealedPassenger = {
     id: passenger.id,
     passengerName: passenger.passengerName,
     fatherName: passenger.fatherName,
     identityType: passenger.identityType,
-    identityNumber: decryptField(passenger.identityNumberEncrypted, key),
-    mobileNumber: decryptField(passenger.mobileEncrypted, key),
-    permanentAddress: decryptField(passenger.permanentAddressEncrypted, key),
+    identityNumber: decryptField(passenger.identityNumberEncrypted, keyring),
+    mobileNumber: decryptField(passenger.mobileEncrypted, keyring),
+    permanentAddress: decryptField(passenger.permanentAddressEncrypted, keyring),
   };
 
   await auditChange({

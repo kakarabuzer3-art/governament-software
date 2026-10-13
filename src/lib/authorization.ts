@@ -31,6 +31,12 @@ export interface CurrentUser {
    * Empty for department-wide roles and for unassigned accounts.
    */
   operatorIds: string[];
+  /**
+   * True when the account has been disabled by an administrator. A disabled
+   * account never reaches this object (getCurrentUser returns null), so this is
+   * informational only — it exists so UI code can be explicit.
+   */
+  disabled: boolean;
 }
 
 interface SessionShape {
@@ -57,6 +63,7 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
       id: true,
       email: true,
       name: true,
+      disabledAt: true,
       roleAssignments: {
         select: {
           role: {
@@ -76,6 +83,11 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
   });
 
   if (!user) return null;
+
+  // A disabled account is treated as NOT AUTHENTICATED, so every server-side
+  // guard (pages, server actions and route handlers) denies it immediately.
+  // This is defence in depth: disabling also deletes the account's sessions.
+  if (user.disabledAt) return null;
 
   const roles: string[] = [];
   const permissions = new Set<PermissionKey>();
@@ -97,6 +109,7 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
     roles,
     permissions,
     operatorIds,
+    disabled: false,
   };
 }
 

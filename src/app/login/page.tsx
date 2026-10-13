@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { LoginForm } from "@/components/auth/LoginForm";
 import { Icon } from "@/components/ui/icons";
+import { BackgroundSwitcher } from "@/components/shell/BackgroundManager";
 import { getCurrentUser } from "@/lib/authorization";
 import { safeNextTarget } from "@/lib/safe-redirect";
 
@@ -52,6 +53,9 @@ export default async function LoginPage({
             <p className="login-subtitle">
               Restricted administrative sign-in &middot; development preview
             </p>
+          </div>
+          <div style={{ marginLeft: "auto" }}>
+            <BackgroundSwitcher />
           </div>
         </div>
 

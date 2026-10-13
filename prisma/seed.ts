@@ -32,7 +32,8 @@ import { ROLE_DEFINITIONS, PERMISSIONS } from "../src/lib/rbac";
 import {
   encryptField,
   fingerprintField,
-  getFieldEncryptionKey,
+  getFingerprintKey,
+  getKeyring,
 } from "../src/lib/crypto/field-crypto";
 import { maskCnic, maskMobile } from "../src/lib/mask";
 
@@ -487,11 +488,12 @@ async function ensureDemoData(client: PrismaClient): Promise<void> {
   });
 
   // --- Passenger manifest (encrypted at rest) ------------------------------
-  const key = getFieldEncryptionKey();
+  const keyring = getKeyring();
+  const fingerprintKey = getFingerprintKey();
 
-  if (!key) {
+  if (!keyring || !fingerprintKey) {
     console.warn(
-      "[seed] FIELD_ENCRYPTION_KEY is not configured — SKIPPING passenger " +
+      "[seed] No encryption/fingerprint key is configured — SKIPPING passenger " +
         "demonstration data (passenger values are never written in plaintext).",
     );
   } else {
@@ -513,7 +515,7 @@ async function ensureDemoData(client: PrismaClient): Promise<void> {
     ];
 
     for (const sample of samples) {
-      const fingerprint = fingerprintField(sample.identityNumber, key);
+      const fingerprint = fingerprintField(sample.identityNumber, fingerprintKey);
       await client.passenger.upsert({
         where: {
           tripId_identityFingerprint: {
@@ -527,14 +529,14 @@ async function ensureDemoData(client: PrismaClient): Promise<void> {
           passengerName: sample.passengerName,
           fatherName: sample.fatherName,
           identityType: "CNIC",
-          identityNumberEncrypted: encryptField(sample.identityNumber, key),
+          identityNumberEncrypted: encryptField(sample.identityNumber, keyring),
           identityFingerprint: fingerprint,
           identityMasked: maskCnic(sample.identityNumber),
-          mobileEncrypted: encryptField(sample.mobileNumber, key),
+          mobileEncrypted: encryptField(sample.mobileNumber, keyring),
           mobileMasked: maskMobile(sample.mobileNumber),
           permanentAddressEncrypted: encryptField(
             sample.permanentAddress,
-            key,
+            keyring,
           ),
         },
       });

@@ -26,6 +26,7 @@ import {
   auditLogout,
   extractClientMeta,
   isFailedAuthResponse,
+  trustedProxyHopsFromEnv,
 } from "./auth-audit";
 
 beforeEach(() => {
@@ -44,20 +45,79 @@ describe("extractClientMeta", () => {
     });
   });
 
-  it("takes only the first x-forwarded-for hop", () => {
+  it("does NOT trust a forwarding header by default (spoofing protection)", () => {
+    // GAP-05: the previous behaviour took the first x-forwarded-for element,
+    // which any client can set. With no trusted proxy configured, no address is
+    // recorded at all — better to store nothing than something forgeable.
     const headers = new Headers({
-      "x-forwarded-for": " 203.0.113.7, 10.0.0.1",
+      "x-forwarded-for": "203.0.113.7, 10.0.0.1",
       "user-agent": "Vitest",
     });
     expect(extractClientMeta(headers)).toEqual({
-      ipAddress: "203.0.113.7",
+      ipAddress: null,
       userAgent: "Vitest",
     });
+    expect(extractClientMeta(headers, { trustedProxyHops: 0 }).ipAddress).toBeNull();
+  });
+
+  it("uses the address appended by a single trusted proxy", () => {
+    const headers = new Headers({ "x-forwarded-for": "203.0.113.7" });
+    expect(
+      extractClientMeta(headers, { trustedProxyHops: 1 }).ipAddress,
+    ).toBe("203.0.113.7");
+  });
+
+  it("ignores values injected to the LEFT of the trusted hop", () => {
+    // A client that prepends a fake address cannot move the trusted position.
+    const headers = new Headers({
+      "x-forwarded-for": "1.2.3.4, 203.0.113.7",
+    });
+    expect(
+      extractClientMeta(headers, { trustedProxyHops: 1 }).ipAddress,
+    ).toBe("203.0.113.7");
+  });
+
+  it("handles two trusted hops", () => {
+    const headers = new Headers({
+      "x-forwarded-for": "203.0.113.7, 10.0.0.1",
+    });
+    expect(
+      extractClientMeta(headers, { trustedProxyHops: 2 }).ipAddress,
+    ).toBe("203.0.113.7");
+  });
+
+  it("falls back to x-real-ip when trusting proxies", () => {
+    const headers = new Headers({ "x-real-ip": "203.0.113.9" });
+    expect(
+      extractClientMeta(headers, { trustedProxyHops: 1 }).ipAddress,
+    ).toBe("203.0.113.9");
+  });
+
+  it("returns no address when the trusted position is absent", () => {
+    const headers = new Headers({ "x-forwarded-for": "203.0.113.7" });
+    expect(
+      extractClientMeta(headers, { trustedProxyHops: 3 }).ipAddress,
+    ).toBeNull();
   });
 
   it("truncates an oversized user agent", () => {
     const headers = new Headers({ "user-agent": "x".repeat(500) });
     expect(extractClientMeta(headers).userAgent?.length).toBe(255);
+  });
+});
+
+describe("trustedProxyHopsFromEnv", () => {
+  it("defaults to 0 (trust nothing)", () => {
+    expect(trustedProxyHopsFromEnv(undefined)).toBe(0);
+    expect(trustedProxyHopsFromEnv("")).toBe(0);
+    expect(trustedProxyHopsFromEnv("abc")).toBe(0);
+    expect(trustedProxyHopsFromEnv("-2")).toBe(0);
+  });
+
+  it("accepts a small positive hop count and caps it", () => {
+    expect(trustedProxyHopsFromEnv("1")).toBe(1);
+    expect(trustedProxyHopsFromEnv(" 2 ")).toBe(2);
+    expect(trustedProxyHopsFromEnv("99")).toBe(8);
   });
 });
 

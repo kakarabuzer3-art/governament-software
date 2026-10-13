@@ -16,21 +16,21 @@
   --bg-color-3: #3c3c3c;
   --bg-base: #141414;
 
-  /* ---------- Glass surfaces ---------- */
-  --glass-fill: rgba(16, 17, 19, 0.55);
-  --glass-fill-strong: rgba(13, 14, 16, 0.78);
-  --glass-fill-soft: rgba(255, 255, 255, 0.05);
-  --glass-fill-hover: rgba(255, 255, 255, 0.09);
-  --glass-border: rgba(255, 255, 255, 0.1);
-  --glass-border-strong: rgba(255, 255, 255, 0.2);
-  --glass-highlight: rgba(255, 255, 255, 0.08);
-  --glass-blur: 14px;
-  --glass-blur-strong: 22px;
-  --glass-shadow-sm: 0 2px 10px rgba(0, 0, 0, 0.25);
-  --glass-shadow-md: 0 10px 30px rgba(0, 0, 0, 0.35);
-  --glass-shadow-lg: 0 24px 60px rgba(0, 0, 0, 0.45);
+  /* ---------- Glass surfaces (Tuned for maximum background clarity) ---------- */
+  --glass-fill: rgba(14, 16, 20, 0.42);
+  --glass-fill-strong: rgba(12, 14, 18, 0.58);
+  --glass-fill-soft: rgba(255, 255, 255, 0.04);
+  --glass-fill-hover: rgba(255, 255, 255, 0.08);
+  --glass-border: rgba(255, 255, 255, 0.12);
+  --glass-border-strong: rgba(255, 255, 255, 0.24);
+  --glass-highlight: rgba(255, 255, 255, 0.1);
+  --glass-blur: 3px;
+  --glass-blur-strong: 5px;
+  --glass-shadow-sm: 0 2px 10px rgba(0, 0, 0, 0.35);
+  --glass-shadow-md: 0 10px 30px rgba(0, 0, 0, 0.45);
+  --glass-shadow-lg: 0 24px 60px rgba(0, 0, 0, 0.55);
   /* Opaque fallback where backdrop-filter is unsupported */
-  --glass-fallback-fill: rgba(22, 23, 26, 0.94);
+  --glass-fallback-fill: rgba(18, 20, 24, 0.88);
 
   /* ---------- Text ---------- */
   --text-primary: rgba(244, 245, 247, 0.96);

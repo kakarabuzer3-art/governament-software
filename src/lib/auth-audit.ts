@@ -39,26 +39,65 @@ export interface ClientRequestMeta {
 const EMPTY_META: ClientRequestMeta = { ipAddress: null, userAgent: null };
 
 /**
+ * Number of proxies in front of the application that we are willing to trust.
+ *
+ * DEFAULT 0 — trust nothing. `x-forwarded-for` is client-settable, so treating
+ * its first element as the real address (the previous behaviour) let an
+ * attacker choose what the audit trail recorded. With hops = 0 no address is
+ * recorded at all, which is the honest outcome: we cannot know the client
+ * address, so we store nothing rather than something forgeable.
+ *
+ * Behind a real reverse proxy, set this to the exact number of proxies you
+ * control (1 for a single nginx/ALB hop) so the address is taken from the
+ * position the outermost trusted proxy appended.
+ */
+export function trustedProxyHopsFromEnv(
+  raw: string | undefined = process.env.TRUSTED_PROXY_HOPS,
+): number {
+  const parsed = Number.parseInt((raw ?? "").trim(), 10);
+  if (!Number.isFinite(parsed) || parsed < 0) return 0;
+  return Math.min(parsed, 8);
+}
+
+export interface ClientMetaOptions {
+  /** Overrides the environment value. Used by tests. */
+  trustedProxyHops?: number;
+}
+
+/**
  * Pull the client IP and user agent out of request headers.
  *
- * `x-forwarded-for` is trusted only for the FIRST hop value, and only for
- * correlation; it is never used for an authorization decision, and only a
- * non-reversible hash of it is persisted.
+ * The address is only used for correlation and only a KEYED hash of it is
+ * persisted (see `src/lib/audit.ts`). It is never used for an authorization
+ * decision.
  */
 export function extractClientMeta(
   headers?: Headers | null,
+  options: ClientMetaOptions = {},
 ): ClientRequestMeta {
   if (!headers) return EMPTY_META;
 
-  const forwarded = headers.get("x-forwarded-for");
-  const candidate =
-    forwarded?.split(",")[0] ??
-    headers.get("x-real-ip") ??
-    headers.get("cf-connecting-ip") ??
-    null;
-  const ipAddress = candidate?.trim() || null;
-
+  const hops = options.trustedProxyHops ?? trustedProxyHopsFromEnv();
   const userAgent = headers.get("user-agent");
+
+  let ipAddress: string | null = null;
+
+  if (hops > 0) {
+    const forwarded = headers.get("x-forwarded-for");
+    if (forwarded) {
+      const parts = forwarded
+        .split(",")
+        .map((part) => part.trim())
+        .filter(Boolean);
+      // The address appended by the outermost trusted proxy sits `hops` from
+      // the right; anything further right was added by an untrusted hop.
+      const index = parts.length - hops;
+      ipAddress = index >= 0 ? parts[index] : null;
+    }
+    if (!ipAddress) {
+      ipAddress = headers.get("x-real-ip")?.trim() || null;
+    }
+  }
 
   return {
     ipAddress,

@@ -80,6 +80,7 @@ describe("getCurrentUser (DB-backed identity)", () => {
       id: "u1",
       email: "admin@example.test",
       name: "Admin",
+      disabledAt: null,
       roleAssignments: [
         {
           role: {
@@ -96,6 +97,55 @@ describe("getCurrentUser (DB-backed identity)", () => {
     expect(user?.permissions.has(PERMISSIONS.USER_MANAGE)).toBe(true);
     // Default-deny: a permission not granted is absent.
     expect(user?.permissions.has(PERMISSIONS.ROLE_MANAGE)).toBe(false);
+  });
+
+  it("treats a DISABLED account as unauthenticated (Phase B)", async () => {
+    // Disabling an account must deny it everywhere. getCurrentUser is the single
+    // source of truth for who is signed in, so returning null here makes every
+    // page guard, server action and route handler refuse the account.
+    getSessionMock.mockResolvedValue({ user: { id: "u1" } });
+    findUniqueMock.mockResolvedValue({
+      id: "u1",
+      email: "leaver@example.test",
+      name: "Disabled Leaver",
+      disabledAt: new Date("2026-10-13T00:00:00.000Z"),
+      roleAssignments: [
+        {
+          role: {
+            key: "SYSTEM_ADMIN",
+            permissions: [{ permission: { key: "user.manage" } }],
+          },
+        },
+      ],
+    });
+
+    expect(await getCurrentUser()).toBeNull();
+    await expect(
+      assertPermission(PERMISSIONS.USER_MANAGE),
+    ).rejects.toBeInstanceOf(UnauthorizedError);
+  });
+
+  it("exposes operator scope and the disabled flag on an active user", async () => {
+    getSessionMock.mockResolvedValue({ user: { id: "u1" } });
+    findUniqueMock.mockResolvedValue({
+      id: "u1",
+      email: "staff@example.test",
+      name: "Operator Staff",
+      disabledAt: null,
+      roleAssignments: [
+        {
+          role: {
+            key: "OPERATOR_STAFF",
+            permissions: [{ permission: { key: "operator.view" } }],
+          },
+        },
+      ],
+      operatorAssignments: [{ operatorId: "op-1" }, { operatorId: "op-2" }],
+    });
+
+    const user = await getCurrentUser();
+    expect(user?.operatorIds).toEqual(["op-1", "op-2"]);
+    expect(user?.disabled).toBe(false);
   });
 });
 
