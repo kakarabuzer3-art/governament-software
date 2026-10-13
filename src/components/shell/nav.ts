@@ -34,18 +34,45 @@ export const NAV_GROUPS: readonly NavGroup[] = [
     items: [
       {
         id: "operators",
-        label: "Operators & Vehicles",
+        label: "Operators",
         href: "/operators",
         icon: "users",
         phase: 3,
         description:
-          "Controlled records for transport operators, vehicles, drivers, permits and routes.",
+          "Controlled records for transport operators, with status and contact details.",
+      },
+      {
+        id: "vehicles",
+        label: "Vehicles",
+        href: "/vehicles",
+        icon: "bus",
+        phase: 3,
+        description:
+          "Vehicles recorded against an operator, with unique registration numbers.",
+      },
+      {
+        id: "routes",
+        label: "Routes",
+        href: "/routes",
+        icon: "route",
+        phase: 3,
+        description:
+          "Origin and destination records for scheduled passenger transport.",
+      },
+      {
+        id: "permits",
+        label: "Permits",
+        href: "/permits",
+        icon: "clipboardCheck",
+        phase: 3,
+        description:
+          "Recorded permit details and their recorded status and provenance.",
       },
       {
         id: "trips",
         label: "Trips & Manifests",
         href: "/trips",
-        icon: "route",
+        icon: "calendar",
         phase: 4,
         description:
           "Journey creation and passenger manifests with validated, masked records.",

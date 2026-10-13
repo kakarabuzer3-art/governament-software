@@ -38,6 +38,9 @@ model User {
   sessions     Session[]
   accounts     Account[]
   roleAssignments UserRole[]
+  /// Operator assignments. An OPERATOR_STAFF user with no row here can see
+  /// NO operator data (see src/lib/transport/scope.ts).
+  operatorAssignments UserOperator[]
   auditEvents  AuditEvent[]
 
   @@map("user")
@@ -178,4 +181,297 @@ model AuditEvent {
   @@index([actorId])
   @@index([createdAt])
   @@map("audit_event")
+}
+
+// ---------------------------------------------------------------------------
+// Phase 3 — transport records: operators, vehicles, routes and permits.
+//
+// STATUS FIELDS ARE STRINGS, NOT DATABASE ENUMS. The allowed values are
+// validated by Zod on the server (src/lib/transport/validation.ts). Keeping
+// them as strings means the provisional, not-yet-approved value sets can be
+// adjusted without a schema migration, and the database never implies that a
+// "status" is an officially mandated classification.
+//
+// Nothing here is connected to any external government service. A permit
+// `status` is the status RECORDED in this prototype, with its provenance in
+// `recordedSource` — it is not authoritative government verification.
+//
+// Records are archived (status -> ARCHIVED + archivedAt), never hard-deleted,
+// so history is preserved.
+// ---------------------------------------------------------------------------
+
+/// A transport operator (bus company / fleet owner). Organisational details
+/// only — no personal data. `code` is the internal business identifier.
+model Operator {
+  id               String    @id @default(cuid())
+  code             String    @unique
+  name             String
+  legalName        String?
+  /// Operator's own registration reference, if the department records one.
+  registrationNumber String? @unique
+  contactEmail     String?
+  contactPhone     String?
+  addressLine      String?
+  city             String?
+  /// ACTIVE | SUSPENDED | ARCHIVED
+  status           String    @default("ACTIVE")
+  notes            String?   @db.Text
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  archivedAt       DateTime?
+
+  vehicles        Vehicle[]
+  permits         Permit[]
+  trips           Trip[]
+  inspections     Inspection[]
+  incidents       Incident[]
+  userAssignments UserOperator[]
+
+  @@index([status])
+  @@index([name])
+  @@map("operator")
+}
+
+/// A physical vehicle belonging to exactly one operator.
+model Vehicle {
+  id                 String    @id @default(cuid())
+  /// Unique vehicle registration identifier (e.g. a plate number).
+  registrationNumber String    @unique
+  operatorId         String
+  operator           Operator  @relation(fields: [operatorId], references: [id], onDelete: Restrict)
+  /// BUS | COASTER | HIACE | VAN | OTHER
+  vehicleType        String    @default("BUS")
+  make               String?
+  model              String?
+  modelYear          Int?
+  seatingCapacity    Int?
+  /// ACTIVE | MAINTENANCE | SUSPENDED | ARCHIVED
+  status             String    @default("ACTIVE")
+  notes              String?   @db.Text
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  archivedAt         DateTime?
+
+  permits Permit[]
+  trips   Trip[]
+
+  @@index([operatorId])
+  @@index([status])
+  @@map("vehicle")
+}
+
+/// A scheduled route between two places.
+model Route {
+  id               String   @id @default(cuid())
+  code             String   @unique
+  name             String
+  originCity       String
+  destinationCity  String
+  distanceKm       Decimal? @db.Decimal(8, 2)
+  estimatedMinutes Int?
+  /// ACTIVE | SUSPENDED | ARCHIVED
+  status           String   @default("ACTIVE")
+  notes            String?  @db.Text
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  archivedAt       DateTime?
+
+  permits Permit[]
+  trips   Trip[]
+
+  @@index([status])
+  @@index([originCity, destinationCity])
+  @@map("route")
+}
+
+/// A permit record. `status` is the status RECORDED in this prototype, and
+/// `recordedSource` states where that status came from. It is never presented
+/// as government-verified unless such verification genuinely exists.
+model Permit {
+  id            String   @id @default(cuid())
+  /// Approved permit identifier, as recorded by the department.
+  permitNumber  String   @unique
+  operatorId    String
+  operator      Operator @relation(fields: [operatorId], references: [id], onDelete: Restrict)
+  vehicleId     String?
+  vehicle       Vehicle? @relation(fields: [vehicleId], references: [id], onDelete: SetNull)
+  routeId       String?
+  route         Route?   @relation(fields: [routeId], references: [id], onDelete: SetNull)
+  /// ROUTE | VEHICLE | OPERATOR | OTHER
+  permitType    String   @default("ROUTE")
+  issuedOn      DateTime? @db.Date
+  expiresOn     DateTime? @db.Date
+  /// PENDING | ACTIVE | EXPIRED | SUSPENDED | REVOKED | ARCHIVED
+  status        String   @default("PENDING")
+  /// Provenance of the recorded status. MANUAL_ENTRY | DOCUMENT_UPLOAD |
+  /// DEPARTMENT_NOTICE | UNVERIFIED. Defaults to manual entry: nothing here is
+  /// machine-verified against a government source.
+  recordedSource String  @default("MANUAL_ENTRY")
+  notes         String?  @db.Text
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  archivedAt    DateTime?
+
+  @@index([operatorId])
+  @@index([vehicleId])
+  @@index([routeId])
+  @@index([status])
+  @@index([expiresOn])
+  @@map("permit")
+}
+
+/// Explicit user -> operator assignment. This is what scopes an OPERATOR_STAFF
+/// account to its own operator's records. Proposed technical mechanism, not an
+/// approved policy construct.
+model UserOperator {
+  id         String   @id @default(cuid())
+  userId     String
+  operatorId String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  operator   Operator @relation(fields: [operatorId], references: [id], onDelete: Cascade)
+  assignedAt DateTime @default(now())
+  assignedBy String?
+
+  @@unique([userId, operatorId])
+  @@index([operatorId])
+  @@map("user_operator")
+}
+
+// ---------------------------------------------------------------------------
+// Phase 4 — trips and passenger manifests.
+//
+// PASSENGER IDENTITY DATA IS SENSITIVE PERSONAL DATA.
+//
+//  - `identityNumber`, `mobileNumber` and `permanentAddress` are stored ONLY as
+//    AES-256-GCM ciphertext (see src/lib/crypto/field-crypto.ts).
+//  - `identityMasked` / `mobileMasked` hold display-safe masked forms so that
+//    ordinary list views never need to decrypt anything.
+//  - `identityFingerprint` is a KEYED digest (HMAC), not a plain hash: a plain
+//    hash of a CNIC would be brute-forceable because the value space is small.
+//    It exists purely for duplicate detection without decryption.
+//
+// Retention: `removedAt` supports controlled withdrawal of a manifest entry
+// without destroying the record. No automatic deletion is performed — the
+// department's approved retention, legal-hold and backup policy is not known.
+// ---------------------------------------------------------------------------
+
+model Trip {
+  id          String    @id @default(cuid())
+  tripRef     String    @unique
+  operatorId  String
+  operator    Operator  @relation(fields: [operatorId], references: [id], onDelete: Restrict)
+  vehicleId   String?
+  vehicle     Vehicle?  @relation(fields: [vehicleId], references: [id], onDelete: SetNull)
+  routeId     String?
+  route       Route?    @relation(fields: [routeId], references: [id], onDelete: SetNull)
+  departureAt DateTime
+  arrivalAt   DateTime? @db.Date
+  /// SCHEDULED | BOARDING | DEPARTED | ARRIVED | CANCELLED
+  status      String    @default("SCHEDULED")
+  notes       String?   @db.Text
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  archivedAt  DateTime?
+
+  passengers Passenger[]
+  incidents  Incident[]
+
+  @@index([operatorId])
+  @@index([departureAt])
+  @@index([status])
+  @@map("trip")
+}
+
+/// One passenger on one trip. Sensitive fields are encrypted at rest.
+model Passenger {
+  id      String @id @default(cuid())
+  tripId  String
+  trip    Trip   @relation(fields: [tripId], references: [id], onDelete: Cascade)
+
+  passengerName String
+  fatherName    String
+  /// CNIC | PASSPORT | OTHER
+  identityType  String @default("CNIC")
+
+  /// AES-256-GCM ciphertext ("v1:iv:tag:ciphertext"). Never plaintext.
+  identityNumberEncrypted   String @db.Text
+  /// Keyed (HMAC) digest for duplicate detection without decryption.
+  identityFingerprint       String
+  /// Display-safe masked CNIC/passport value.
+  identityMasked            String
+  mobileEncrypted           String @db.Text
+  mobileMasked              String
+  permanentAddressEncrypted String @db.Text
+
+  /// Set when the entry is withdrawn from the active manifest. The record is
+  /// retained; nothing is destroyed.
+  removedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([tripId, identityFingerprint])
+  @@index([identityFingerprint])
+  @@map("passenger")
+}
+
+// ---------------------------------------------------------------------------
+// Phase 5 — CCTV inspections and incident records.
+//
+// Nothing here claims a camera is operational without a recorded inspection,
+// and nothing here performs an automated judgement about a person.
+// ---------------------------------------------------------------------------
+
+model Inspection {
+  id           String    @id @default(cuid())
+  siteName     String
+  city         String?
+  operatorId   String?
+  operator     Operator? @relation(fields: [operatorId], references: [id], onDelete: SetNull)
+  cameraCount  Int       @default(0)
+  /// Only cameras actually inspected and observed working.
+  camerasOperational Int @default(0)
+  inspectionDate DateTime? @db.Date
+  /// PASS | PASS_WITH_FINDINGS | FAIL | NOT_INSPECTED
+  result       String    @default("NOT_INSPECTED")
+  findings     String?   @db.Text
+  responsibleParty String?
+  followUpAction   String? @db.Text
+  nextDueOn    DateTime? @db.Date
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  archivedAt   DateTime?
+
+  @@index([operatorId])
+  @@index([inspectionDate])
+  @@index([result])
+  @@map("inspection")
+}
+
+model Incident {
+  id          String    @id @default(cuid())
+  reference   String    @unique
+  operatorId  String?
+  operator    Operator? @relation(fields: [operatorId], references: [id], onDelete: SetNull)
+  tripId      String?
+  trip        Trip?     @relation(fields: [tripId], references: [id], onDelete: SetNull)
+  occurredOn  DateTime
+  location    String
+  category    String
+  /// LOW | MEDIUM | HIGH | CRITICAL — a recorded triage value, not an
+  /// automated determination.
+  severity    String    @default("LOW")
+  description String    @db.Text
+  /// REPORTED | UNDER_REVIEW | CLOSED | ARCHIVED
+  status      String    @default("REPORTED")
+  reportedBy  String?
+  reviewNotes String?   @db.Text
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  archivedAt  DateTime?
+
+  @@index([operatorId])
+  @@index([occurredOn])
+  @@index([status])
+  @@index([severity])
+  @@map("incident")
 }

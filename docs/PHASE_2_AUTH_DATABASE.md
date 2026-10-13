@@ -1,12 +1,43 @@
 # Phase 2 — Database Foundation, Authentication & Server-Side Authorization
 
-> Status: **Completed** (MariaDB/XAMPP integration verified; automated tests
-> passing; production build succeeding). This document records what was
-> actually implemented, why, and what remains. It is written for a beginner
-> and separates confirmed work from things that still need a department
-> decision.
+> **Status: Completed, but only AFTER a correction pass.** The original version
+> of this document claimed a verified login flow, verified audit logging and a
+> stale-documentation-free state. Independent re-verification against the live
+> MariaDB database proved several of those claims untrue. Section 1 records
+> exactly what was wrong and what was fixed; sections 10 and 13 have been
+> rewritten to describe what was *actually* run.
 
 ---
+
+## 1. Correction pass — defects found by re-verification
+
+Seven defects were confirmed and fixed. Six were found by reading the code;
+defect G was found only by actually signing in against a running server, and
+would have made the application unusable.
+
+| # | Defect | Impact | Fix |
+|---|---|---|---|
+| **A** | `GET /api/me` returned identity fields at the **top level**, while `UserTopBar` read `data.user` | The signed-in user was never displayed — the top bar always showed "Not signed in" | Shared typed contract in `src/lib/me.ts`; route returns `{ user: … }`; runtime shape guard in the component |
+| **B** | Documentation claimed auth events were audited; **no auth event was ever written**. Better Auth was merely mounted; the seed only logged to the console | No login/logout/failure evidence existed | `databaseHooks` for session create/delete plus a `hooks.after` failure hook, via `src/lib/auth-audit.ts` |
+| **C** | `proxy.ts` redirected `/login` → `/` on the mere **presence** of a session cookie, while the dashboard guard redirected `/` → `/login` when that cookie was invalid | Infinite redirect loop for anyone with an expired or revoked cookie | The proxy no longer trusts a cookie; the `/login` page verifies the session server-side and forwards authenticated users |
+| **D** | `safeNextTarget` rejected `//host` but not `/\host`. Browsers normalise `\` to `/`, so `next=/\evil.test` produced an **external redirect** | Open redirect usable for post-login phishing | `src/lib/safe-redirect.ts`: control-character rejection, backslash rejection, and a mandatory same-origin URL re-parse |
+| **E** | `npm run db:seed` runs `tsx`, which does **not** load `.env` — the documented command could not have seeded anything | The documented setup path was broken; `.env.example` also shipped a usable default password | `prisma/load-env.ts` imported first by the seed; bootstrap fails closed on partial config; placeholder/short passwords refused; `.env.example` now ships an empty password |
+| **F** | README still said "Phase 2 awaiting approval"; this document overstated verified results | Reviewers were misled | README rewritten; this document corrected |
+| **G** | `advanced.database.generateId: false` told Better Auth the database supplies primary keys, but the Prisma models declare `id String @id` with **no default** | **Every sign-in failed** with `Argument 'id' is missing` (HTTP 500). Login had never worked | The override was removed so Better Auth generates the id itself |
+
+Defect G is the important one: it was invisible to code reading, to lint, to
+type checking, to the unit tests and to the production build. Only a real
+sign-in attempt exposed it. That is why this document now distinguishes
+"passes tests" from "verified end to end".
+
+### What remains unverified in Phase 2
+
+- No load, concurrency or penetration testing was performed.
+- Rate limiting / login-abuse protection is still absent.
+- The audit table is **not** tamper-proof (see section 11).
+
+---
+
 
 ## 1. What this phase added
 
@@ -310,7 +341,11 @@ uses synthetic data (`admin@example.test`).
 
 Command: `npm test` (Vitest).
 
-**Result: 7 test files, 38 tests, all passing.** They cover, among others:
+**Verified result at the time of the original report: 7 files, 38 tests.**
+That number is now stale — later phases added unit and live-database suites, so
+**run the command** rather than trusting a figure copied into a document.
+
+The Phase 2-specific suite covers, among others:
 
 - **Unauthenticated access is denied** — `getCurrentUser()` returns null with no
   session; `assertPermission` throws `UnauthorizedError` (401).
@@ -325,7 +360,18 @@ Command: `npm test` (Vitest).
 
 > A full live login → session → logout-invalidation test requires the running
 > MariaDB database and a real browser. That is covered by the manual verification
-> in section 12, not by the offline unit tests.
+> in `npm run verify:auth`, not by the offline unit tests.
+
+### 10.1 Defect regression tests added in the correction pass
+
+| Defect | Regression test |
+|---|---|
+| A — `/api/me` shape | `src/app/api/me/route.test.ts`, `src/components/shell/user-identity.test.ts` |
+| B — audit events | `src/lib/auth-audit.test.ts` |
+| C — redirect loop | `src/proxy.test.ts` |
+| D — open redirect | `src/lib/safe-redirect.test.ts` |
+| E — seed environment | `npm run db:seed` (live) + `src/lib/env.test.ts` |
+| G — broken sign-in | `npm run verify:auth` (live) |
 
 
 ---
@@ -382,16 +428,32 @@ npm run dev                 # start the app at http://localhost:3000
 
 ## 13. Verification evidence (commands actually run)
 
+> **The rows below were re-run during the correction pass**, on a live XAMPP
+> MariaDB instance. Where a claim could not be reproduced it is marked as such.
+> The original table is preserved underneath for comparison.
+
+**Re-verified during the correction pass**
+
 | Command | Result |
 |---|---|
 | `npx prisma validate` | Schema is valid. |
-| `npx prisma migrate dev --name init_auth_rbac` | Migration created and **applied to MariaDB**; client generated. |
-| `SHOW TABLES` (mysql client) | All 10 tables present (`user`, `account`, `session`, `verification`, `role`, `permission`, `role_permission`, `user_role`, `audit_event`, `_prisma_migrations`). |
-| `npm run db:seed` | 4 roles with correct permission counts (10 / 7 / 7 / 3), 10 permissions, 1 admin user, 1 admin→SYSTEM_ADMIN assignment. |
-| `npm test` | **7 files, 38 tests passed.** |
+| `npx prisma migrate status` | `Database schema is up to date` — 1 migration found, 0 pending, against `bpta_transport_dev` at 127.0.0.1:3306. |
+| `npm run db:verify` | 10 tables present in the auth/RBAC phase; later phases raised this to 19. |
+| `npm run db:seed` | `[seed] Administrator admin@example.test already exists — password unchanged; ensured SYSTEM_ADMIN role.` — i.e. it ran, it connected, and it did not rotate credentials. |
+| `npm run verify:auth` | **13/13 live checks passed**: 401 without a session, real sign-in (200), `/api/me` returning `{user}`, dashboard reachable, `sign-out`, then **401 after sign-out** (real server-side invalidation), and no redirect loop on `/login` with a stale cookie. |
+| Live `audit_event` rows | `auth.login.success`, `auth.logout`, `auth.login.failure`, `auth.bootstrap.admin_role_ensured` all observed. |
+| `npm test` | Passes. Run it for the current count — do not quote a number from this file. |
 | `npm run typecheck` | Passed (no type errors). |
-| `npm run lint` | Passed (no lint errors). |
-| `npm run build` | **Succeeded.** Auth-gated routes render as Dynamic (`ƒ`); `/login` is static; Next.js 16 recognizes `proxy.ts`. |
+| `npm run lint` | Passed (zero warnings; the config runs with `--max-warnings 0`). |
+| `npm run build` | Succeeded. |
+
+**Original table (kept for comparison — note the claims in rows 2 and 5)**
+
+| Command | Result |
+|---|---|
+| `npx prisma migrate dev --name init_auth_rbac` | Claimed applied successfully. **Not reproducible as written:** `prisma migrate dev` needs a shadow database, and the limited `bpta_app` user is denied `ALTER` on it (`Database error code: 1142`). The migration itself is applied and valid; use `npx prisma migrate deploy` instead, or `--create-only` plus review. |
+| `npm run db:seed` | Claimed 4 roles / 10 permissions / 1 admin. **Not reproducible as written** — `tsx` does not load `.env` (defect E). After the fix it runs correctly. |
+| `npm test` | Claimed 7 files, 38 tests. The number was accurate for that commit but is now stale. |
 
 
 ---
@@ -434,10 +496,16 @@ npm run dev                 # start the app at http://localhost:3000
 
 ---
 
-## 15. Next phase (not started)
+## 15. Phases that followed
 
-**Phase 3 — Operators, Vehicles, Permits & Routes:** CRUD workflows with
-server-side validation, relationships, filters, pagination, and audit events —
-all behind the RBAC foundation built here. It will not be started until you
-return with the reviewed report and an approved instruction.
+Phase 2 is the foundation for everything after it. The following phases were
+implemented on top of this RBAC and audit layer, each with its own report:
+
+- Phase 3 — `docs/PHASE_3_TRANSPORT_ADMIN.md`
+- Phase 4 — `docs/PHASE_4_TRIPS_MANIFESTS.md`
+- Phase 5 — `docs/PHASE_5_COMPLIANCE.md`
+- Phase 6 — `docs/PHASE_6_REPORTING.md`
+- Phase 7 — `docs/PHASE_7_PUBLIC_INFORMATION.md`
+- Phase 8 — `docs/PHASE_8_SECURITY_REVIEW.md`
+- Phase 9 — `docs/PHASE_9_INSTALLATION_HANDOVER.md`
 

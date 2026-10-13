@@ -1,0 +1,196 @@
+/* ============================================================
+   TRANSPORT MODULES (Phases 3–6)
+   Additive styles for record lists, filters, forms, pagination
+   and status cells. Reuses the existing glass tokens — it does
+   NOT redefine the background or the palette.
+   ============================================================ */
+
+/* --- Filter bar -------------------------------------------------------- */
+
+.filter-bar {
+  padding: var(--space-3) var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+.filter-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: center;
+}
+
+.filter-input {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex: 1 1 16rem;
+  min-width: 12rem;
+  color: var(--text-muted);
+}
+
+.filter-input .input {
+  width: 100%;
+}
+
+.filter-status {
+  flex: 0 1 12rem;
+  min-width: 9rem;
+}
+
+/* --- Resource forms ---------------------------------------------------- */
+
+.resource-form {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4) var(--space-4);
+}
+
+@media (max-width: 720px) {
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.field--wide {
+  grid-column: 1 / -1;
+}
+
+.field-optional {
+  color: var(--text-muted);
+  font-weight: 400;
+  font-size: var(--text-xs);
+}
+
+.field-help {
+  margin: var(--space-1) 0 0;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.field-error {
+  margin: var(--space-1) 0 0;
+  font-size: var(--text-xs);
+  color: var(--danger-text, #ff9a9a);
+  font-weight: 600;
+}
+
+.form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: center;
+}
+
+.form-success {
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(120, 220, 160, 0.35);
+  background: rgba(40, 120, 80, 0.18);
+  color: var(--success-text, #9ff0c0);
+}
+
+/* --- Table cells / row actions ----------------------------------------- */
+
+.row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.inline-form {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+}
+
+.stacked-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.cell-hint {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+/* --- Pagination -------------------------------------------------------- */
+
+.pagination {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-4);
+  margin-top: var(--space-4);
+}
+
+.pagination-summary,
+.pagination-page {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+
+.pagination-controls {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+}
+
+.pagination .btn[aria-disabled="true"] {
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+/* --- Detail panels ----------------------------------------------------- */
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  gap: var(--space-3) var(--space-5);
+  margin: 0;
+}
+
+.detail-grid dt {
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
+.detail-grid dd {
+  margin: 0 0 var(--space-2);
+  color: var(--text-primary);
+}
+
+/* --- Misc helpers ------------------------------------------------------ */
+
+.notice--warning {
+  border-color: rgba(240, 190, 90, 0.35);
+  background: rgba(140, 100, 30, 0.16);
+}
+
+.section-stack {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.masked-value {
+  font-family: var(--font-mono, monospace);
+  letter-spacing: 0.06em;
+}
+
+.cell-muted {
+  color: var(--text-muted);
+}

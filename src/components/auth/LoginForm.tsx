@@ -12,14 +12,23 @@ import { useState, type FormEvent } from "react";
 import { useSearchParams } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
 import { Icon } from "@/components/ui/icons";
+import { safeNextTarget } from "@/lib/safe-redirect";
 
-/** Only allow relative, same-site redirects after login (prevents open redirect). */
-function safeNextTarget(raw: string | null): string {
-  if (!raw) return "/";
-  if (!raw.startsWith("/")) return "/";
-  if (raw.startsWith("//")) return "/"; // protocol-relative -> external
-  return raw;
-}
+/**
+ * One generic credential failure message for every rejected sign-in.
+ *
+ * Phase 2 defect D: we never surface the library's raw message, because a
+ * differing message per cause ("no such account" vs "wrong password" vs
+ * "account disabled") is an account-enumeration oracle. The same text is shown
+ * whether the email is unknown, the password is wrong, or the account is
+ * otherwise ineligible.
+ */
+const GENERIC_SIGN_IN_ERROR =
+  "Sign-in failed. Check your email and password, then try again.";
+
+/** Shown only when the request never reached the server. */
+const NETWORK_SIGN_IN_ERROR =
+  "Unable to reach the server. Check your connection and try again.";
 
 export function LoginForm() {
   const searchParams = useSearchParams();
@@ -48,31 +57,29 @@ export function LoginForm() {
     setFieldError(null);
 
     setPending(true);
-    const { error } = await authClient.signIn.email(
-      { email: email.trim(), password },
-      {
-        onSuccess: () => {
-          // Full navigation is required: the shell loads identity once on
-          // mount, and a client-side refresh would leave the top bar showing
-          // the stale "Not signed in" state. A fresh page load re-verifies
-          // identity server-side against the newly issued session.
-          window.location.href = nextTarget;
-        },
-        onError: (ctx) => {
-          // Generic message — do not disclose which field was wrong.
-          setFormError(
-            ctx.error.message?.trim() ||
-              "Sign-in failed. Check your details and try again.",
-          );
-        },
-      },
-    );
-    setPending(false);
-    if (error) {
-      setFormError(
-        error.message?.trim() ||
-          "Sign-in failed. Check your details and try again.",
-      );
+    try {
+      const { error } = await authClient.signIn.email({
+        email: email.trim(),
+        password,
+      });
+
+      if (error) {
+        // Generic on purpose: never disclose whether the account exists or
+        // which credential was wrong (no account-enumeration oracle).
+        setFormError(GENERIC_SIGN_IN_ERROR);
+        return;
+      }
+
+      // Full navigation is required: the shell loads identity once on mount,
+      // and a client-side refresh would leave the top bar showing the stale
+      // "Not signed in" state. A fresh page load re-verifies identity
+      // server-side against the newly issued session.
+      window.location.href = nextTarget;
+    } catch {
+      // The request never completed — distinct from a rejected credential.
+      setFormError(NETWORK_SIGN_IN_ERROR);
+    } finally {
+      setPending(false);
     }
   }
 

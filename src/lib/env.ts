@@ -11,6 +11,7 @@
  * DATABASE_URL must be a MySQL/MariaDB connection URL.
  */
 import { z } from "zod";
+import { parseEncryptionKey } from "@/lib/crypto/field-crypto";
 
 export const serverEnvSchema = z.object({
   DATABASE_URL: z
@@ -27,6 +28,21 @@ export const serverEnvSchema = z.object({
   BETTER_AUTH_SECRET: z
     .string()
     .min(16, "BETTER_AUTH_SECRET must be at least 16 characters."),
+  // AES-256-GCM key for sensitive passenger identity fields. Optional so the
+  // application still builds and runs for non-manifest work; passenger writes
+  // FAIL CLOSED when it is absent (see src/lib/crypto/field-crypto.ts).
+  FIELD_ENCRYPTION_KEY: z
+    .string()
+    .optional()
+    .refine(
+      (value) => !value || parseEncryptionKey(value) !== null,
+      {
+        message:
+          "FIELD_ENCRYPTION_KEY must be a 32-byte key encoded as base64 or as 64 hex characters.",
+      },
+    ),
+  // Optional retention configuration for manifest data (floor of 10 days).
+  MANIFEST_RETENTION_DAYS: z.string().optional(),
   BETTER_AUTH_URL: z.string().min(1).optional(),
   NEXT_PUBLIC_APP_URL: z.string().min(1).optional(),
   NODE_ENV: z

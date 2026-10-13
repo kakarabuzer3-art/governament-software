@@ -6,7 +6,17 @@ import type {
 } from "@/types";
 
 /**
- * SYNTHETIC SAMPLE DATA — Phase 1 dashboard preview only.
+ * SYNTHETIC SAMPLE DATA — Phase 1 dashboard preview, RETAINED FOR REFERENCE.
+ *
+ * IMPORTANT: this module is NO LONGER IMPORTED BY THE DASHBOARD. As of Phase 6
+ * the dashboard renders live, permission-scoped database counts, because
+ * presenting fabricated statistics inside a government-workflow prototype is
+ * not acceptable even when labelled. Nothing in the running application reads
+ * the values below.
+ *
+ * They are kept so the Phase 1 design work and the shape of the original mock
+ * tables remain documented. If you are about to import this into a page, stop
+ * and use the database-backed services in `src/lib/transport/` instead.
  *
  * Every value below is fabricated for interface development:
  * - No real passengers, CNICs, mobile numbers or addresses exist here.

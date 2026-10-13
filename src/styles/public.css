@@ -1,0 +1,198 @@
+/* ============================================================
+   PUBLIC INFORMATION SITE (/info)
+   Separate, indexable, anonymously accessible surface.
+
+   It reuses the mandated tokens, glass surfaces and the global
+   geometric background. It does NOT redefine the background or
+   the palette, and it must never be used by the admin shell.
+   ============================================================ */
+
+.public-site {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: var(--space-4) var(--space-4) var(--space-6);
+  gap: var(--space-4);
+}
+
+/* --- Prototype disclosure banner --------------------------------------- */
+
+.public-banner {
+  border: 1px solid rgba(240, 190, 90, 0.38);
+  background: rgba(140, 100, 30, 0.18);
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+}
+
+.public-banner strong {
+  color: var(--warning-text, #ffd39a);
+}
+
+/* --- Header / navigation ----------------------------------------------- */
+
+.public-header {
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+}
+
+.public-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+.public-brand .brand-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.public-title {
+  margin: 0;
+  font-size: var(--text-lg);
+}
+
+.public-subtitle {
+  margin: 0;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.public-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.public-nav a {
+  padding: 0.35rem 0.7rem;
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  border: 1px solid transparent;
+}
+
+.public-nav a:hover,
+.public-nav a:focus-visible {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.public-nav a[aria-current="page"] {
+  color: var(--text-primary);
+  border-color: rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* --- Content ------------------------------------------------------------ */
+
+.public-main {
+  display: grid;
+  gap: var(--space-4);
+  flex: 1;
+}
+
+.public-card {
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+}
+
+.public-card h1,
+.public-card h2 {
+  margin-top: 0;
+}
+
+.public-card p {
+  max-width: 68ch;
+}
+
+.public-lede {
+  font-size: var(--text-lg);
+  color: var(--text-muted);
+}
+
+.public-section-links {
+  list-style: none;
+  margin: var(--space-4) 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  gap: var(--space-3);
+}
+
+.public-section-links a {
+  display: block;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.public-section-links a:hover,
+.public-section-links a:focus-visible {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.public-section-links strong {
+  display: block;
+  margin-bottom: 0.15rem;
+}
+
+.public-section-links span {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.public-steps,
+.public-faq {
+  padding-left: 1.1rem;
+}
+
+.public-faq dt {
+  font-weight: 600;
+  margin-top: var(--space-3);
+}
+
+.public-faq dd {
+  margin: 0.25rem 0 0;
+  color: var(--text-muted);
+  max-width: 68ch;
+}
+
+.public-placeholder {
+  display: inline-block;
+  padding: 0.15rem 0.5rem;
+  border-radius: var(--radius-sm);
+  border: 1px dashed rgba(240, 190, 90, 0.5);
+  color: var(--warning-text, #ffd39a);
+  font-size: var(--text-xs);
+}
+
+.public-footer {
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  justify-content: space-between;
+}
+
+@media (max-width: 640px) {
+  .public-site {
+    padding: var(--space-3);
+  }
+  .public-card {
+    padding: var(--space-4);
+  }
+}
